@@ -159,3 +159,56 @@ export const getProgressByTutor = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+/**
+ * GET /api/progress
+ * Admin only - view all student progress records
+ */
+export const getAllProgress = async (req, res) => {
+  try {
+    const isAdmin = req.user.role === "admin";
+
+    if (!isAdmin) {
+      return res.status(403).json({ message: "Only admins can view all progress records" });
+    }
+
+    const list = await Progress.find()
+      .populate("student", "fullName email role")
+      .populate("tutor", "fullName email role")
+      .sort({ updatedAt: -1 });
+
+    return res.json({ count: list.length, progress: list });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/**
+ * DELETE /api/progress/:id
+ * Tutor or admin can delete progress records
+ */
+export const deleteProgress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidId(id)) {
+      return res.status(400).json({ message: "Invalid progress id" });
+    }
+
+    const progress = await Progress.findById(id);
+    if (!progress) {
+      return res.status(404).json({ message: "Progress record not found" });
+    }
+
+    const isAdmin = req.user.role === "admin";
+    const isTutor = req.user.role === TUTOR_ROLE && String(progress.tutor) === String(req.user._id);
+
+    if (!isAdmin && !isTutor) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    await Progress.deleteOne({ _id: id });
+    return res.json({ message: "Progress record deleted" });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};

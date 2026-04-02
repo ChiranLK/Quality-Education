@@ -1,12 +1,7 @@
-import { useState } from "react";
-import {
-  BookOpen, Users, ShieldCheck, LogOut, User, BarChart2,
-  Bell, Search, TrendingUp, Calendar, MessageSquare,
-  CheckCircle, AlertCircle, Clock, Settings, ChevronRight,
-  Activity, FileText, Star, Eye,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { BookOpen, Users, ShieldCheck, LogOut, User, BarChart2, MessageSquare, TrendingUp, ArrowLeft } from "lucide-react";
 import DarkModeToggle from "../../components/DarkModeToggle";
+import { AllFeedbacks, AdminProgress } from "../../components/feedback/index.js";
+import { useState } from "react";
 
 /* ─── animation variants ─── */
 const fadeUp = {
@@ -69,12 +64,86 @@ const STATUS_ICON = {
 
 /* ─── component ─── */
 export default function AdminDashboard({ user, onLogout }) {
-  const [search, setSearch]           = useState("");
-  const [notifOpen, setNotifOpen]     = useState(false);
-  const [activeTab, setActiveTab]     = useState("overview");
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'feedbacks', 'progress'
 
-  const tabs = ["overview", "users", "tutors", "reports"];
+  const handleViewFeedbacks = () => {
+    setCurrentView('feedbacks');
+  };
 
+  const handleViewProgress = () => {
+    setCurrentView('progress');
+  };
+
+  const handleBackToDashboard = () => {
+    setCurrentView('dashboard');
+  };
+
+  const renderContent = () => {
+    switch (currentView) {
+      case 'feedbacks':
+        return (
+          <AllFeedbacks />
+        );
+      case 'progress':
+        return (
+          <AdminProgress />
+        );
+      default:
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
+            >
+              <div className="bg-rose-50 dark:bg-rose-900/40 w-10 h-10 rounded-xl flex items-center justify-center mb-4">
+                <Users className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Manage Users</h3>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">View, edit and remove users.</p>
+            </div>
+
+            <div
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
+            >
+              <div className="bg-orange-50 dark:bg-orange-900/40 w-10 h-10 rounded-xl flex items-center justify-center mb-4">
+                <BookOpen className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Manage Tutors</h3>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">Verify and oversee tutor accounts.</p>
+            </div>
+
+            <div
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={handleViewFeedbacks}
+            >
+              <div className="bg-blue-50 dark:bg-blue-900/40 w-10 h-10 rounded-xl flex items-center justify-center mb-4">
+                <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">All Feedbacks</h3>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">Monitor system feedbacks.</p>
+            </div>
+
+            <div
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={handleViewProgress}
+            >
+              <div className="bg-green-50 dark:bg-green-900/40 w-10 h-10 rounded-xl flex items-center justify-center mb-4">
+                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Student Progress</h3>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">View all student progress.</p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="bg-yellow-50 dark:bg-yellow-900/40 w-10 h-10 rounded-xl flex items-center justify-center mb-4">
+                <BarChart2 className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">Reports</h3>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">View platform analytics and stats.</p>
+            </div>
+          </div>
+        );
+    }
+  };
   return (
     <motion.div
       variants={fadeIn} initial="hidden" animate="show"
@@ -167,218 +236,28 @@ export default function AdminDashboard({ user, onLogout }) {
         </div>
       </header>
 
-      {/* ── Main ── */}
-      <main className="max-w-6xl mx-auto px-6 py-10 space-y-8">
-
-        {/* Welcome */}
-        <motion.div variants={fadeUp} custom={0} initial="hidden" animate="show">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-            Welcome back, {user?.name ?? "Admin"} 🛡️
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Here's what's happening on your platform today.
-          </p>
-        </motion.div>
-
-        {/* Tabs */}
-        <motion.div variants={fadeUp} custom={1} initial="hidden" animate="show"
-          className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit"
-        >
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`relative px-4 py-1.5 text-sm font-medium rounded-lg capitalize transition-colors ${
-                activeTab === tab
-                  ? "text-gray-900 dark:text-gray-100"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              }`}
-            >
-              {activeTab === tab && (
-                <motion.span
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-white dark:bg-gray-700 rounded-lg shadow-sm"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10">{tab}</span>
-            </button>
-          ))}
-        </motion.div>
-
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {STATS.map((s, i) => {
-            const c = COLOR_MAP[s.color];
-            return (
-              <motion.div
-                key={s.label}
-                variants={scaleIn} custom={i} initial="hidden" animate="show"
-                whileHover={{ y: -4, boxShadow: "0 12px 28px rgba(0,0,0,0.08)" }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 cursor-default"
-              >
-                <div className={`${c.bg} w-9 h-9 rounded-xl flex items-center justify-center mb-3`}>
-                  <s.icon className={`w-4 h-4 ${c.icon}`} />
-                </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{s.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{s.label}</p>
-                <span className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
-                  <TrendingUp className="w-3 h-3" /> {s.delta}
-                </span>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Management cards + Activity feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Management cards */}
-          <div className="lg:col-span-2 space-y-4">
-            <motion.h2 variants={fadeUp} custom={5} initial="hidden" animate="show"
-              className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider"
-            >
-              Management
-            </motion.h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { label: "Manage Users",   sub: "View, edit and remove users.",          icon: Users,    color: "rose",   stat: "1,284 users"   },
-                { label: "Manage Tutors",  sub: "Verify and oversee tutor accounts.",     icon: BookOpen, color: "orange", stat: "86 active"     },
-                { label: "Reports",        sub: "View platform analytics and stats.",     icon: BarChart2,color: "yellow", stat: "View all →"    },
-              ].map((card, i) => {
-                const c = COLOR_MAP[card.color];
-                return (
-                  <motion.div
-                    key={card.label}
-                    variants={fadeUp} custom={i + 6} initial="hidden" animate="show"
-                    whileHover={{ y: -3, scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer group"
-                  >
-                    <div className={`${c.bg} w-10 h-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                      <card.icon className={`w-5 h-5 ${c.icon}`} />
-                    </div>
-                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">{card.label}</h3>
-                    <p className="text-gray-400 dark:text-gray-500 text-xs mb-3">{card.sub}</p>
-                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${c.badge}`}>{card.stat}</span>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* Quick Actions */}
-            <motion.div variants={fadeUp} custom={9} initial="hidden" animate="show"
-              className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700"
-            >
-              <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-rose-500" /> Quick Actions
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {QUICK_ACTIONS.map((qa, i) => {
-                  const c = COLOR_MAP[qa.color];
-                  return (
-                    <motion.button
-                      key={qa.label}
-                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                      custom={i}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-xl ${c.bg} transition-colors cursor-pointer`}
-                    >
-                      <qa.icon className={`w-5 h-5 ${c.icon}`} />
-                      <span className={`text-[11px] font-semibold ${c.icon} text-center leading-tight`}>{qa.label}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Recent Activity */}
-          <motion.div variants={fadeUp} custom={10} initial="hidden" animate="show"
-            className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col"
+      {/* Main */}
+      <main className="max-w-6xl mx-auto px-6 py-10">
+        {currentView !== 'dashboard' && (
+          <button
+            onClick={handleBackToDashboard}
+            className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-medium transition-colors mb-6"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <Bell className="w-4 h-4 text-rose-500" /> Recent Activity
-              </h3>
-              <button className="text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-0.5">
-                View all <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </button>
+        )}
+        
+        {currentView === 'dashboard' && (
+          <>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">Admin Panel 🛡️</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Manage users, tutors, and platform settings.</p>
+          </>
+        )}
 
-            <ul className="space-y-3 flex-1">
-              {ACTIVITY.map((a, i) => (
-                <motion.li
-                  key={a.id}
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 + i * 0.07, duration: 0.35 }}
-                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
-                >
-                  {STATUS_ICON[a.status]}
-                  <div className="min-w-0">
-                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-snug">{a.text}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{a.time}</p>
-                  </div>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
+        <div className={currentView === 'feedbacks' || currentView === 'progress' ? "bg-white dark:bg-gray-800 rounded-lg p-6" : ""}>
+          {renderContent()}
         </div>
-
-        {/* Footer row */}
-        <motion.div variants={fadeUp} custom={11} initial="hidden" animate="show"
-          className="flex flex-col sm:flex-row gap-4"
-        >
-          {/* Platform Status */}
-          <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-rose-500" /> Platform Status
-            </h3>
-            <div className="space-y-3">
-              {[
-                { label: "API Server",      ok: true  },
-                { label: "Database",        ok: true  },
-                { label: "Email Service",   ok: true  },
-                { label: "Storage",         ok: false },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">{s.label}</span>
-                  <span className={`flex items-center gap-1 text-xs font-semibold ${s.ok ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}`}>
-                    <span className={`w-2 h-2 rounded-full ${s.ok ? "bg-green-500" : "bg-yellow-500"}`} />
-                    {s.ok ? "Operational" : "Degraded"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-rose-500" /> Pending Messages
-            </h3>
-            <div className="space-y-2">
-              {[
-                { from: "Student: Nuwan S.",  msg: "Issue with session booking",  time: "5m" },
-                { from: "Tutor: D. Perera",   msg: "Request to update profile",   time: "20m" },
-                { from: "Student: A. Silva",  msg: "Payment not reflecting",       time: "1h" },
-              ].map((m, i) => (
-                <motion.div
-                  key={i}
-                  whileHover={{ x: 4 }}
-                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
-                >
-                  <div>
-                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{m.from}</p>
-                    <p className="text-[11px] text-gray-400 truncate max-w-[180px]">{m.msg}</p>
-                  </div>
-                  <span className="text-[11px] text-gray-400 shrink-0">{m.time}</span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
       </main>
     </motion.div>
   );
