@@ -2,10 +2,14 @@ import { motion } from "framer-motion";
 import { 
   BookOpen, Users, Video, FileText, 
   CheckCircle2, ArrowRight, Star, 
-  MapPin, Clock, Calendar 
+  MapPin, Clock, Calendar, Sun, Moon
 } from "lucide-react";
+import { useDarkMode } from "../../context/DarkModeContext";
+
 
 export default function HomePage({ onNavigate, onNavigateToLogin }) {
+  const { darkMode, toggleDarkMode } = useDarkMode();
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -21,41 +25,54 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300">
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border-b border-transparent dark:border-slate-800">
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-2">
               <div className="bg-indigo-600 p-2 rounded-xl text-white">
                 <BookOpen className="w-6 h-6" />
               </div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-800">
+              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-800 dark:from-indigo-400 dark:to-indigo-600">
                 TutorConnect
               </span>
+
             </div>
             
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#home" className="text-indigo-600 font-medium cursor-pointer">Home</a>
-              <a href="#features" className="text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer">Features</a>
-              <a href="#tutors" className="text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer">Tutors</a>
-              <a href="#materials" className="text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer">Study Materials</a>
+              <a href="#home" className="text-indigo-600 dark:text-indigo-400 font-medium cursor-pointer">Home</a>
+              <a href="#features" className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer">Features</a>
+              <a href="#tutors" className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer">Tutors</a>
+              <a href="#materials" className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer">Study Materials</a>
             </div>
 
+
             <div className="flex items-center gap-4">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleDarkMode}
+                className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all border border-transparent dark:border-slate-700"
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </motion.button>
+
               <button 
                 onClick={onNavigateToLogin}
-                className="text-slate-600 hover:text-indigo-600 font-medium transition-colors"
+                className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors"
               >
                 Log in
               </button>
               <button 
                 onClick={onNavigateToLogin}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-md shadow-indigo-200"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-md shadow-indigo-200 dark:shadow-none"
               >
                 Sign up
               </button>
             </div>
+
           </div>
         </div>
       </nav>
@@ -70,14 +87,15 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-medium text-sm mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-medium text-sm mb-6">
                 <span className="flex h-2 w-2 rounded-full bg-indigo-600"></span>
                 Web Based Peer-Learning
               </div>
-              <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight mb-6 text-slate-900">
-                Better <span className="text-indigo-600">Learning</span> Future Starts With TutorConnect
+              <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight mb-6 text-slate-900 dark:text-white">
+                Better <span className="text-indigo-600 dark:text-indigo-400">Learning</span> Future Starts With TutorConnect
               </h1>
-              <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto lg:mx-0">
+              <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 max-w-2xl mx-auto lg:mx-0">
+
                 Empowering school students through collaborative peer-learning and expert tutoring. Find the right materials, connect with tutors, and track your progress all in one place.
               </p>
               
@@ -90,10 +108,11 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
                 </button>
                 <a 
                   href="#features"
-                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-8 py-4 rounded-full font-semibold transition-all flex items-center justify-center gap-2 shadow-sm"
+                  className="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-8 py-4 rounded-full font-semibold transition-all flex items-center justify-center gap-2 shadow-sm"
                 >
                   Explore Features
                 </a>
+
               </div>
               
               <div className="mt-10 flex items-center justify-center lg:justify-start gap-4 text-sm text-slate-500 font-medium">
@@ -113,28 +132,30 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               {/* Decorative blobs */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-indigo-200 via-indigo-50 to-pink-50 rounded-full blur-3xl -z-10 opacity-70"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-indigo-200/50 via-indigo-50/20 to-pink-50/20 dark:from-indigo-900/40 dark:via-transparent dark:to-transparent rounded-full blur-3xl -z-10 opacity-70"></div>
               
-              <div className="relative z-10 w-full rounded-3xl overflow-hidden shadow-2xl border border-white/50 bg-white/30 backdrop-blur-sm p-4">
+              <div className="relative z-10 w-full rounded-3xl overflow-hidden shadow-2xl border border-white/50 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm p-4 text-center">
                  <img 
                     src="/assets/hero_upscaled.png" 
                     alt="Students studying together" 
-                    className="w-full h-auto rounded-2xl object-cover"
+                    className="w-full h-auto rounded-2xl object-cover mix-blend-normal dark:opacity-90"
                  />
               </div>
             </motion.div>
+
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
+      <section id="features" className="py-20 bg-white dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-indigo-600 font-bold tracking-wide uppercase text-sm mb-2">Our Capabilities</h2>
-            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Find The Best Features Of TutorConnect</h3>
-            <p className="text-slate-600">Access a full suite of tools designed to enhance your learning experience through collaboration, expert guidance, and rich resources.</p>
+            <h2 className="text-indigo-600 dark:text-indigo-400 font-bold tracking-wide uppercase text-sm mb-2">Our Capabilities</h2>
+            <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">Find The Best Features Of TutorConnect</h3>
+            <p className="text-slate-600 dark:text-slate-400">Access a full suite of tools designed to enhance your learning experience through collaboration, expert guidance, and rich resources.</p>
           </div>
+
 
           <motion.div 
             className="grid md:grid-cols-3 gap-8"
@@ -144,41 +165,43 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
             viewport={{ once: true, margin: "-100px" }}
           >
             {[
-              { icon: Users, title: "Interactive Peer Learning", desc: "Connect with classmates, form study groups, and learn together in a collaborative environment.", color: "bg-blue-100 text-blue-600" },
-              { icon: Video, title: "Live Tutoring Sessions", desc: "Book 1-on-1 or group video sessions with experienced tutors tailored to your specific needs.", color: "bg-indigo-100 text-indigo-600" },
-              { icon: FileText, title: "Rich Study Materials", desc: "Access a verified library of study notes, past papers, and video tutorials categorized by grade and subject.", color: "bg-pink-100 text-pink-600" },
+              { icon: Users, title: "Interactive Peer Learning", desc: "Connect with classmates, form study groups, and learn together in a collaborative environment.", color: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" },
+              { icon: Video, title: "Live Tutoring Sessions", desc: "Book 1-on-1 or group video sessions with experienced tutors tailored to your specific needs.", color: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" },
+              { icon: FileText, title: "Rich Study Materials", desc: "Access a verified library of study notes, past papers, and video tutorials categorized by grade and subject.", color: "bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400" },
             ].map((feature, idx) => (
               <motion.div 
                 key={idx} 
                 variants={itemVariants}
-                className="border border-slate-100 bg-white rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                className="border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
               >
                 <div className={`${feature.color} w-14 h-14 rounded-2xl flex items-center justify-center mb-6`}>
                   <feature.icon className="w-7 h-7" />
                 </div>
-                <h4 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h4>
-                <p className="text-slate-600 leading-relaxed">{feature.desc}</p>
+                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{feature.title}</h4>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
+
           </motion.div>
         </div>
       </section>
 
       {/* Top Tutors Section */}
-      <section id="tutors" className="py-20 bg-slate-50">
+      <section id="tutors" className="py-20 bg-slate-50 dark:bg-slate-950">
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
             <div>
-              <h2 className="text-indigo-600 font-bold tracking-wide uppercase text-sm mb-2">Expert Instructors</h2>
-              <h3 className="text-3xl md:text-4xl font-bold text-slate-900">Learn From Top Tutors</h3>
+              <h2 className="text-indigo-600 dark:text-indigo-400 font-bold tracking-wide uppercase text-sm mb-2">Expert Instructors</h2>
+              <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">Learn From Top Tutors</h3>
             </div>
             <button 
               onClick={onNavigateToLogin}
-              className="text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1"
+              className="text-indigo-600 dark:text-indigo-400 font-medium hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
             >
               See all tutors <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
@@ -193,21 +216,21 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-md transition-shadow group"
+                className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 hover:shadow-md transition-shadow group"
               >
-                <div className="h-48 bg-slate-200 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-indigo-900/20 group-hover:bg-transparent transition-colors z-10"></div>
+                <div className="h-48 bg-slate-200 dark:bg-slate-800 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-indigo-900/20 dark:bg-indigo-900/40 group-hover:bg-transparent transition-colors z-10"></div>
                   <img 
                     src={tutor.photo} 
                     alt={tutor.name} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 dark:opacity-80"
                   />
                 </div>
                 <div className="p-5 text-center">
-                  <h4 className="text-lg font-bold text-slate-900">{tutor.name}</h4>
-                  <p className="text-sm text-indigo-600 font-medium mb-3">{tutor.role}</p>
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white">{tutor.name}</h4>
+                  <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mb-3">{tutor.role}</p>
                   
-                  <div className="flex items-center justify-center gap-4 text-xs text-slate-500 font-medium border-t border-slate-100 pt-3">
+                  <div className="flex items-center justify-center gap-4 text-xs text-slate-500 dark:text-slate-400 font-medium border-t border-slate-100 dark:border-slate-800 pt-3">
                     <span className="flex items-center gap-1">
                       <Star className="w-3.5 h-3.5 text-amber-500" fill="currentColor" /> {tutor.rating}
                     </span>
@@ -216,6 +239,7 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
                     </span>
                   </div>
                 </div>
+
               </motion.div>
             ))}
           </div>
@@ -244,7 +268,8 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-12 border-t border-slate-800">
+      <footer className="bg-slate-900 dark:bg-black text-slate-300 py-12 border-t border-slate-800">
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
@@ -267,13 +292,14 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
           </div>
           
           <div>
-            <h4 className="text-white font-semibold mb-4">Company</h4>
+            <h4 className="text-white font-semibold mb-4 underline decoration-indigo-600 underline-offset-8">Company</h4>
             <ul className="space-y-2 text-sm">
-              <li><button onClick={() => onNavigate("about")} className="hover:text-white transition-colors cursor-pointer">About Us</button></li>
-              <li><button onClick={() => onNavigate("privacy")} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button></li>
-              <li><button onClick={() => onNavigate("terms")} className="hover:text-white transition-colors cursor-pointer">Terms of Service</button></li>
+              <li><button onClick={() => onNavigate("about")} className="hover:text-white dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer">About Us</button></li>
+              <li><button onClick={() => onNavigate("privacy")} className="hover:text-white dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer">Privacy Policy</button></li>
+              <li><button onClick={() => onNavigate("terms")} className="hover:text-white dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer">Terms of Service</button></li>
             </ul>
           </div>
+
           
           <div>
             <h4 className="text-white font-semibold mb-4">Contact</h4>
