@@ -4,43 +4,58 @@ import customFetch from "../utils/customfetch";
 import { Eye, EyeOff, Mail, Lock, BookOpen, ArrowRight } from "lucide-react";
 import DarkModeToggle from "../components/DarkModeToggle";
 
-export default function LoginPage({ onLogin, onBack }) {
+export default function LoginPage({ onLogin, onBack, onNavigateToRegister }) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [formData, setFormData] = useState({ email: "", password: "", remember: false });
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
+
+    // Front-end validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data } = await customFetch.post("/auth/login", {
         email: formData.email,
         password: formData.password,
       });
-      // Store in sessionStorage for tab-specific session (independent across tabs)
-      sessionStorage.setItem("token", data.token);
-      sessionStorage.setItem("user", JSON.stringify(data.user));
-      
-      // Optionally also store in localStorage if 'remember me' is checked (persistent across sessions)
-      if (formData.remember) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
-      if (onLogin) onLogin(data);
+
+      setSuccess("Login Successful! Redirecting...");
+
+      setTimeout(() => {
+        // Store in sessionStorage for tab-specific session (independent across tabs)
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
+        
+        // Optionally also store in localStorage if 'remember me' is checked (persistent across sessions)
+        if (formData.remember) {
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
+        if (onLogin) onLogin(data);
+      }, 1000);
     } catch (err) {
       setError(err?.response?.data?.msg || "Login failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
+
   return (
     <div className="auth-bg min-h-screen flex relative transition-colors duration-500">
 
@@ -115,9 +130,9 @@ export default function LoginPage({ onLogin, onBack }) {
           <p className="text-gray-500 dark:text-slate-400 text-sm mb-8">
 
             Don&apos;t have an account?{" "}
-            <a href="#" className="text-indigo-600 font-medium hover:underline">
+            <button onClick={onNavigateToRegister} className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
               Create one free
-            </a>
+            </button>
           </p>
 
           {/* Google SSO button */}
@@ -220,12 +235,28 @@ export default function LoginPage({ onLogin, onBack }) {
               <span className="text-sm text-slate-600 dark:text-slate-400">Remember me for 30 days</span>
             </label>
 
-            {/* Error message */}
-            {error && (
-              <p className="text-red-500 text-sm text-center -mt-1 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg py-2 px-3">
-                {error}
-              </p>
-            )}
+            {/* Message Center */}
+            <div className="space-y-3">
+              {error && (
+                <motion.p 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg py-2.5 px-3"
+                >
+                  {error}
+                </motion.p>
+              )}
+              {success && (
+                <motion.p 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-emerald-500 text-sm text-center bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-lg py-2.5 px-3"
+                >
+                  {success}
+                </motion.p>
+              )}
+            </div>
+
 
             {/* Submit */}
             <motion.button
