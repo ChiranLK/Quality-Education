@@ -77,7 +77,12 @@ function AppContent() {
     case "splash":
       return <SplashScreen onFinish={() => setCurrentView("home")} />;
     case "home":
-      return <HomePage onNavigate={(view) => setCurrentView(view)} onNavigateToLogin={() => setCurrentView("login")} />;
+      return <HomePage 
+        onNavigate={(view) => setCurrentView(view)} 
+        onNavigateToLogin={() => setCurrentView("login")} 
+        onNavigateToRegister={() => setCurrentView("register")} 
+      />;
+
     case "login":
       return <LoginPage onLogin={handleLogin} onBack={() => setCurrentView("home")} onNavigateToRegister={() => setCurrentView("register")} />;
     case "register":
@@ -89,6 +94,10 @@ function AppContent() {
     case "terms":
       return <TermsOfService onBack={() => setCurrentView("home")} />;
     default:
-      return <HomePage onNavigate={(view) => setCurrentView(view)} onNavigateToLogin={() => setCurrentView("login")} />;
+      return <HomePage 
+        onNavigate={(view) => setCurrentView(view)} 
+        onNavigateToLogin={() => setCurrentView("login")} 
+        onNavigateToRegister={() => setCurrentView("register")} 
+      />;
   }
 }

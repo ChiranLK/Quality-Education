@@ -24,12 +24,18 @@ export default function LoginPage({ onLogin, onBack, onNavigateToRegister }) {
     setSuccess("");
 
     // Front-end validation
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError("Please enter a valid email address.");
+    const { email, password } = formData;
+    if (!email.trim() || !password) {
+      setError("Please fill out all fields.");
+      return;
+    }
+    if (!email.includes("@")) {
+      setError("Please enter a valid email address with '@'.");
       return;
     }
 
     setLoading(true);
+
     try {
       const { data } = await customFetch.post("/auth/login", {
         email: formData.email,

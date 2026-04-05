@@ -21,14 +21,22 @@ export default function RegisterPage({ onLogin, onBack, onNavigateToLogin }) {
   });
 
   const validateForm = () => {
-    if (formData.fullName.trim().length < 3) return "Full Name must be at least 3 characters long.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return "Please enter a valid email address.";
-    if (!/^[0-9]{10}$/.test(formData.phoneNumber)) return "Phone number must be exactly 10 digits.";
-    if (formData.password.length < 6) return "Password must be at least 6 characters long.";
-    if (formData.password !== formData.confirmPassword) return "Passwords do not match.";
-    if (formData.role === "tutor" && !formData.subjects.trim()) return "Subjects are required for tutor registration.";
+    const { fullName, email, phoneNumber, location, password, confirmPassword, role, subjects } = formData;
+
+    if (!fullName.trim() || !email.trim() || !phoneNumber.trim() || !location.trim() || !password || !confirmPassword) {
+      return "All fields are required.";
+    }
+    if (!/^[a-zA-Z\s]+$/.test(fullName)) return "Full Name can only contain letters.";
+    if (fullName.trim().length < 3) return "Full Name must be at least 3 characters long.";
+    if (!email.includes("@")) return "Please enter a valid email address with '@'.";
+    if (!/^[0-9]+$/.test(phoneNumber)) return "Phone number can only contain numbers.";
+    if (phoneNumber.length !== 10) return "Phone number must be exactly 10 digits.";
+    if (password.length < 6) return "Password must be at least 6 characters long.";
+    if (password !== confirmPassword) return "Passwords do not match.";
+    if (role === "tutor" && !subjects.trim()) return "Subjects are required for tutor registration.";
     return null;
   };
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
