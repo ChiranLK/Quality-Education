@@ -12,7 +12,8 @@ export default function SplashScreen({ onFinish }) {
   }, [onFinish]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-600">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-600 dark:bg-indigo-950 transition-colors duration-500">
+
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
