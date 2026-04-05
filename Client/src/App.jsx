@@ -7,6 +7,9 @@ import AdminDashboard from "./pages/admindashboard/adminDashboard.jsx";
 import { DarkModeProvider } from "./context/DarkModeContext.jsx";
 import SplashScreen from "./pages/homepage/SplashScreen.jsx";
 import HomePage from "./pages/homepage/HomePage.jsx";
+import AboutUs from "./pages/info/AboutUs.jsx";
+import PrivacyPolicy from "./pages/info/PrivacyPolicy.jsx";
+import TermsOfService from "./pages/info/TermsOfService.jsx";
 
 const DASHBOARDS = {
   user: UserDashboard,
@@ -42,7 +45,7 @@ function AppContent() {
 
   // If user is already logged in securely from session, skip splash/home and go straight to dashboard
   useEffect(() => {
-    if (user && currentView !== "dashboard") {
+    if (user && !["dashboard", "about", "privacy", "terms"].includes(currentView)) {
       setCurrentView("dashboard");
     }
   }, [user, currentView]);
@@ -63,20 +66,26 @@ function AppContent() {
     localStorage.removeItem("user");
   };
 
-  if (user) {
+  if (user && currentView === "dashboard") {
     const Dashboard = DASHBOARDS[user.role];
     if (Dashboard) return <Dashboard user={user} onLogout={handleLogout} />;
   }
 
   // Not logged in routing
-  if (currentView === "splash") {
-    return <SplashScreen onFinish={() => setCurrentView("home")} />;
+  switch (currentView) {
+    case "splash":
+      return <SplashScreen onFinish={() => setCurrentView("home")} />;
+    case "home":
+      return <HomePage onNavigate={(view) => setCurrentView(view)} onNavigateToLogin={() => setCurrentView("login")} />;
+    case "login":
+      return <LoginPage onLogin={handleLogin} />;
+    case "about":
+      return <AboutUs onBack={() => setCurrentView("home")} />;
+    case "privacy":
+      return <PrivacyPolicy onBack={() => setCurrentView("home")} />;
+    case "terms":
+      return <TermsOfService onBack={() => setCurrentView("home")} />;
+    default:
+      return <HomePage onNavigate={(view) => setCurrentView(view)} onNavigateToLogin={() => setCurrentView("login")} />;
   }
-  
-  if (currentView === "home") {
-    return <HomePage onNavigateToLogin={() => setCurrentView("login")} />;
-  }
-
-  // Default fallback for unauthenticated users is Login Page
-  return <LoginPage onLogin={handleLogin} />;
 }

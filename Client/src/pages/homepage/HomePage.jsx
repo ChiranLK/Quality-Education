@@ -5,7 +5,7 @@ import {
   MapPin, Clock, Calendar 
 } from "lucide-react";
 
-export default function HomePage({ onNavigateToLogin }) {
+export default function HomePage({ onNavigate, onNavigateToLogin }) {
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -269,9 +269,9 @@ export default function HomePage({ onNavigateToLogin }) {
           <div>
             <h4 className="text-white font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              <li><button onClick={() => onNavigate("about")} className="hover:text-white transition-colors cursor-pointer">About Us</button></li>
+              <li><button onClick={() => onNavigate("privacy")} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button></li>
+              <li><button onClick={() => onNavigate("terms")} className="hover:text-white transition-colors cursor-pointer">Terms of Service</button></li>
             </ul>
           </div>
           
