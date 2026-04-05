@@ -10,6 +10,7 @@ import HomePage from "./pages/homepage/HomePage.jsx";
 import AboutUs from "./pages/info/AboutUs.jsx";
 import PrivacyPolicy from "./pages/info/PrivacyPolicy.jsx";
 import TermsOfService from "./pages/info/TermsOfService.jsx";
+import RegisterPage from "./pages/register.jsx";
 
 const DASHBOARDS = {
   user: UserDashboard,
@@ -78,7 +79,9 @@ function AppContent() {
     case "home":
       return <HomePage onNavigate={(view) => setCurrentView(view)} onNavigateToLogin={() => setCurrentView("login")} />;
     case "login":
-      return <LoginPage onLogin={handleLogin} onBack={() => setCurrentView("home")} />;
+      return <LoginPage onLogin={handleLogin} onBack={() => setCurrentView("home")} onNavigateToRegister={() => setCurrentView("register")} />;
+    case "register":
+      return <RegisterPage onLogin={handleLogin} onBack={() => setCurrentView("home")} onNavigateToLogin={() => setCurrentView("login")} />;
     case "about":
       return <AboutUs onBack={() => setCurrentView("home")} />;
     case "privacy":

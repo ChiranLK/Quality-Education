@@ -8,7 +8,7 @@ import { useDarkMode } from "../../context/DarkModeContext";
 import { useState, useEffect } from "react";
 
 
-export default function HomePage({ onNavigate, onNavigateToLogin }) {
+export default function HomePage({ onNavigate, onNavigateToLogin, onNavigateToRegister }) {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const [activeSection, setActiveSection] = useState("home");
 
@@ -89,11 +89,12 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
                 Log in
               </button>
               <button 
-                onClick={onNavigateToLogin}
+                onClick={onNavigateToRegister}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-md shadow-indigo-200 dark:shadow-none"
               >
                 Sign up
               </button>
+
             </div>
 
           </div>
@@ -124,11 +125,12 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <button 
-                  onClick={onNavigateToLogin}
+                  onClick={onNavigateToRegister}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-full font-semibold transition-all shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2"
                 >
                   Get Started Now <ArrowRight className="w-5 h-5" />
                 </button>
+
 
                 <a 
                   href="#features"
@@ -284,11 +286,12 @@ export default function HomePage({ onNavigate, onNavigateToLogin }) {
             Join thousands of students who are already using TutorConnect to improve their grades, learn collaboratively, and succeed together.
           </p>
           <button 
-            onClick={onNavigateToLogin}
+            onClick={onNavigateToRegister}
             className="bg-white text-indigo-600 hover:bg-slate-50 px-10 py-5 rounded-full font-bold text-lg transition-transform transform hover:scale-105 shadow-xl"
           >
             Create Your Free Account
           </button>
+
         </div>
       </section>
 
