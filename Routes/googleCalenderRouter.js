@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createOAuthClient, getAuthUrl, saveTokens, getAuthedClient } from '../utils/googleCalender.js';
+import { createOAuthClient, getAuthUrl, saveTokens, getAuthedClient, loadTokens } from '../utils/googleCalender.js';
 import { google } from 'googleapis';
 
 const router = Router();

@@ -24,7 +24,6 @@ import materialRouter from "./Routes/materialRouter.js";
 // Google Calendar
 import { initCalendar } from "./services/googleCalendarService.js";
 
-
 const app = express();
 
 // Middleware
@@ -55,6 +54,7 @@ app.use("/api/tutoring-sessions", tutoringSessionRouter);
 app.use("/api/tutors", tutorRouter);
 app.use("/api/materials", materialRouter);
 app.use("/api/google-oauth", googleOAuthRouter);
+app.use("/api/google-calendar", googleCalendarRouter);  // ← ADD THIS LINE
 
 // Init Google Calendar
 initCalendar();
