@@ -5,16 +5,12 @@ import CardModal from "./UI/modal";
 import customFetch from "../../../utils/customfetch";
 
 
-export default function SubmittedMessagesModal({ isOpen, onClose, triggerRefresh }) {
+export default function SubmittedMessagesModal({ isOpen, onClose, triggerRefresh, onEdit }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [editedMessage, setEditedMessage] = useState("");
-  const [updating, setUpdating] = useState(false);
-  const [updateError, setUpdateError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [deleteError, setDeleteError] = useState(null);
+  const [deleteErrors, setDeleteErrors] = useState({});
 
   // Fetch submitted messages
   useEffect(() => {
@@ -42,53 +38,13 @@ export default function SubmittedMessagesModal({ isOpen, onClose, triggerRefresh
     fetchMessages();
   }, [isOpen, triggerRefresh]);
 
-  // Handle update message
-  const handleUpdateMessage = async (messageId) => {
-    if (!editedMessage.trim()) {
-      setUpdateError("Message cannot be empty");
-      return;
+  // Handle edit message
+  const handleEditMessage = (message) => {
+    // Close modal and pass message to parent component
+    onClose();
+    if (onEdit) {
+      onEdit(message);
     }
-
-    setUpdating(true);
-    setUpdateError(null);
-
-    try {
-      // Find the message to get all required fields
-      const message = messages.find((msg) => msg._id === messageId);
-      
-      const response = await customFetch.patch(`/messages/${messageId}`, {
-        message: editedMessage,
-        title: message.title,
-        category: message.category,
-        language: message.language,
-      });
-
-      if (response.data?.success) {
-        // Update local state
-        setMessages((prevMessages) =>
-          prevMessages.map((msg) =>
-            msg._id === messageId
-              ? { ...msg, message: editedMessage }
-              : msg
-          )
-        );
-        setEditingId(null);
-        setEditedMessage("");
-      }
-    } catch (err) {
-      setUpdateError(
-        err?.response?.data?.msg || "Failed to update message"
-      );
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  // Handle cancel edit
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditedMessage("");
-    setUpdateError(null);
   };
 
   // Handle delete message
@@ -99,7 +55,7 @@ export default function SubmittedMessagesModal({ isOpen, onClose, triggerRefresh
     }
 
     setDeletingId(messageId);
-    setDeleteError(null);
+    setDeleteErrors((prev) => ({ ...prev, [messageId]: null }));
 
     try {
       const response = await customFetch.delete(`/messages/${messageId}`);
@@ -109,16 +65,17 @@ export default function SubmittedMessagesModal({ isOpen, onClose, triggerRefresh
         setMessages((prevMessages) =>
           prevMessages.filter((msg) => msg._id !== messageId)
         );
-        // If we were editing this message, clear the edit state
-        if (editingId === messageId) {
-          setEditingId(null);
-          setEditedMessage("");
-        }
+        // Clear error for this message
+        setDeleteErrors((prev) => {
+          const updated = { ...prev };
+          delete updated[messageId];
+          return updated;
+        });
       }
     } catch (err) {
-      setDeleteError(
-        err?.response?.data?.msg || "Failed to delete message"
-      );
+      const errorMsg =
+        err?.response?.data?.msg || err?.message || "Failed to delete message";
+      setDeleteErrors((prev) => ({ ...prev, [messageId]: errorMsg }));
     } finally {
       setDeletingId(null);
     }
@@ -126,92 +83,42 @@ export default function SubmittedMessagesModal({ isOpen, onClose, triggerRefresh
 
   // Format messages into card format
   const formattedCards = messages.map((msg, index) => {
-    const isEditing = editingId === msg._id;
-
+    const msgDeleteError = deleteErrors[msg._id];
+    
     return {
       id: msg._id || index,
       badge: msg.category,
       title: msg.title,
       subtitle: msg.language,
       image: getGradientImage(msg.category),
-      description: isEditing ? null : msg.message,
-      content: isEditing ? (
-        <div className="space-y-3 sm:space-y-4">
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
-              Edit Message
-            </label>
-            <textarea
-              value={editedMessage}
-              onChange={(e) => setEditedMessage(e.target.value)}
-              className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              rows="4"
-              placeholder="Enter your updated message..."
-            />
-          </div>
-          {updateError && (
-            <div className="p-2 sm:p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-xs sm:text-sm">
-              {updateError}
-            </div>
-          )}
-        </div>
-      ) : deleteError ? (
+      description: msg.message,
+      content: msgDeleteError ? (
         <div className="p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-300 text-xs sm:text-sm">
-          <p className="font-medium mb-2">Error deleting message:</p>
-          <p>{deleteError}</p>
+          <p className="font-medium mb-2">⚠️ Error deleting message:</p>
+          <p className="text-red-600 dark:text-red-400">{msgDeleteError}</p>
         </div>
       ) : null,
       actions: (
         <div className="flex flex-col sm:flex-row gap-2 w-full">
-          {!isEditing ? (
-            <>
-              <motion.button
-                onClick={() => {
-                  setEditingId(msg._id);
-                  setEditedMessage(msg.message);
-                  setUpdateError(null);
-                }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 flex-1 sm:flex-none"
-              >
-                <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                Update
-              </motion.button>
-              <motion.button
-                onClick={() => handleDeleteMessage(msg._id)}
-                disabled={deletingId === msg._id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 flex-1 sm:flex-none"
-              >
-                <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                {deletingId === msg._id ? "Deleting..." : "Delete"}
-              </motion.button>
-            </>
-          ) : (
-            <>
-              <motion.button
-                onClick={() => handleUpdateMessage(msg._id)}
-                disabled={updating}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm sm:text-base font-medium transition-colors"
-              >
-                {updating ? "Saving..." : "Save"}
-              </motion.button>
-              <motion.button
-                onClick={handleCancelEdit}
-                disabled={updating}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-500 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm sm:text-base font-medium transition-colors flex items-center justify-center gap-1 sm:gap-2"
-              >
-                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                Cancel
-              </motion.button>
-            </>
-          )}
+          <motion.button
+            onClick={() => handleEditMessage(msg)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-2 sm:px-3 py-1 sm:py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 flex-1 sm:flex-none"
+          >
+            <Edit2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            Update
+          </motion.button>
+          <motion.button
+            onClick={() => handleDeleteMessage(msg._id)}
+            disabled={deletingId === msg._id}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 flex-1 sm:flex-none"
+          >
+            <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            {deletingId === msg._id ? "Deleting..." : "Delete"}
+          </motion.button>
         </div>
       ),
       metadata: (

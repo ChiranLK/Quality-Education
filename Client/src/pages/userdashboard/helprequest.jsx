@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import customFetch from "../../utils/customfetch";
 import HelpRequestVideo from "../../components/HelpRequestVideo";
@@ -24,6 +24,26 @@ export default function HelpRequest({ user }) {
   const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [formUILanguage, setFormUILanguage] = useState("English");
+  const [editingMessage, setEditingMessage] = useState(null);
+
+  // Populate form when editing a message
+  useEffect(() => {
+    if (editingMessage) {
+      setForm({
+        title: editingMessage.title || "",
+        message: editingMessage.message || "",
+        category: editingMessage.category || "",
+        language: editingMessage.language || "",
+      });
+      // Scroll to form
+      setTimeout(() => {
+        const formElement = document.querySelector('form');
+        if (formElement) {
+          formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [editingMessage]);
 
   const validate = () => {
     const e = {};
@@ -45,6 +65,16 @@ export default function HelpRequest({ user }) {
     setFormUILanguage(language);
   };
 
+  const handleEditMessage = (message) => {
+    setEditingMessage(message);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setForm(INITIAL_FORM);
+    setErrors({});
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
@@ -56,15 +86,30 @@ export default function HelpRequest({ user }) {
 
     setLoading(true);
     try {
-      await customFetch.post("/messages", {
-        title: form.title.trim(),
-        message: form.message.trim(),
-        category: form.category,
-        language: form.language,
-        formUILanguage, // Send the form UI language for translation
-      });
+      if (editingMessage) {
+        // Update existing message
+        await customFetch.patch(`/messages/${editingMessage._id}`, {
+          title: form.title.trim(),
+          message: form.message.trim(),
+          category: form.category,
+          language: form.language,
+        });
 
-      toast.success("Your request has been published to all tutors! 🎉");
+        toast.success("Your message has been updated! 📝");
+        setEditingMessage(null);
+      } else {
+        // Create new message
+        await customFetch.post("/messages", {
+          title: form.title.trim(),
+          message: form.message.trim(),
+          category: form.category,
+          language: form.language,
+          formUILanguage, // Send the form UI language for translation
+        });
+
+        toast.success("Your request has been published to all tutors! 🎉");
+      }
+
       setForm(INITIAL_FORM);
       setErrors({});
       setSubmitted(true);
@@ -105,6 +150,9 @@ export default function HelpRequest({ user }) {
         onFormChange={handleFormChange}
         onLanguageChange={handleLanguageChange}
         onSubmit={handleSubmit}
+        isEditMode={!!editingMessage}
+        editingMessage={editingMessage}
+        onCancelEdit={handleCancelEdit}
       />
 
       {/* Submitted Messages Modal */}
@@ -112,6 +160,7 @@ export default function HelpRequest({ user }) {
         isOpen={showMessagesModal}
         onClose={() => setShowMessagesModal(false)}
         triggerRefresh={refreshTrigger}
+        onEdit={handleEditMessage}
       />
     </div>
   );
