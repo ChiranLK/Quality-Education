@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 
 const SUBJECT_OPTIONS = [
