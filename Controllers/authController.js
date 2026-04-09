@@ -11,7 +11,7 @@ import {
 
 // Register a new user or tutor
 export const register = async (req, res) => {
-  const { email, password, role, subjects } = req.body || {};
+  const { email, password, role, subjects, grade } = req.body || {};
   if (!email || !password) {
     throw new BadRequestError("Email and password are required");
   }
@@ -44,6 +44,8 @@ export const register = async (req, res) => {
   } else {
     // Default: first account becomes admin, others become user
     req.body.role = isFirstAccount ? "admin" : "user";
+    // Save grade for students
+    if (grade) req.body.grade = grade;
   }
 
   const hashedPassword = await hashPassword(password);
@@ -100,7 +102,9 @@ export const login = async (req, res) => {
       email: user.email,
       phoneNumber: user.phoneNumber,
       location: user.location,
+      grade: user.grade || "",
       role: user.role,
+      avatar: user.avatar,
       tutorProfile: user.tutorProfile,
     },
   };
@@ -165,9 +169,9 @@ export const updateProfile = async (req, res) => {
       throw new BadRequestError("User ID not found in request");
     }
 
-    const { fullName, email, phoneNumber, location, tutorProfile } = req.body;
+    const { fullName, email, phoneNumber, location, grade, tutorProfile } = req.body;
 
-    if (!fullName && !email && !phoneNumber && !location && !tutorProfile) {
+    if (!fullName && !email && !phoneNumber && !location && !grade && !tutorProfile) {
       throw new BadRequestError("At least one field must be provided to update");
     }
 
@@ -176,6 +180,7 @@ export const updateProfile = async (req, res) => {
     if (email) updateData.email = email;
     if (phoneNumber) updateData.phoneNumber = phoneNumber;
     if (location) updateData.location = location;
+    if (grade !== undefined) updateData.grade = grade;
     if (tutorProfile) updateData.tutorProfile = tutorProfile;
 
     console.log('Update data:', updateData);
@@ -199,7 +204,9 @@ export const updateProfile = async (req, res) => {
         email: updatedUser.email,
         phoneNumber: updatedUser.phoneNumber,
         location: updatedUser.location,
+        grade: updatedUser.grade || "",
         role: updatedUser.role,
+        avatar: updatedUser.avatar,
         tutorProfile: updatedUser.tutorProfile,
       },
     });
@@ -387,7 +394,9 @@ export const getMe = async (req, res) => {
       email: user.email,
       phoneNumber: user.phoneNumber,
       location: user.location,
+      grade: user.grade || "",
       role: user.role,
+      avatar: user.avatar,
       tutorProfile: user.tutorProfile,
     });
   } catch (error) {

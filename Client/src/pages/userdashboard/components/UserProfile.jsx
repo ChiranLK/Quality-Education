@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import {
   User, Mail, Phone, MapPin, Camera, Trash2, Save, Loader2, AlertCircle,
-  CheckCircle, X, TriangleAlert, ShieldAlert,
+  CheckCircle, X, TriangleAlert, ShieldAlert, GraduationCap,
 } from "lucide-react";
 import customFetch from "../../../utils/customfetch.jsx";
 import toast from "react-hot-toast";
@@ -114,7 +114,14 @@ export default function UserProfile({ user, onUpdateUser }) {
     email: user?.email || "",
     phoneNumber: user?.phoneNumber || "",
     location: user?.location || "",
+    grade: user?.grade || "",
   });
+
+  const GRADE_OPTIONS = [
+    'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
+    'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10',
+    'Grade 11', 'Grade 12', 'O/L', 'A/L', 'University', 'Other',
+  ];
 
   // Keep in sync if parent user prop changes
   useEffect(() => {
@@ -123,6 +130,7 @@ export default function UserProfile({ user, onUpdateUser }) {
       email: user?.email || "",
       phoneNumber: user?.phoneNumber || "",
       location: user?.location || "",
+      grade: user?.grade || "",
     });
   }, [user]);
 
@@ -153,6 +161,7 @@ export default function UserProfile({ user, onUpdateUser }) {
       email: user?.email || "",
       phoneNumber: user?.phoneNumber || "",
       location: user?.location || "",
+      grade: user?.grade || "",
     });
     setIsEditing(false);
   };
@@ -185,6 +194,7 @@ export default function UserProfile({ user, onUpdateUser }) {
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
         location: formData.location.trim(),
+        grade: formData.grade,
       };
 
       const response = await customFetch.put("/auth/profile", payload);
@@ -197,6 +207,7 @@ export default function UserProfile({ user, onUpdateUser }) {
         email: saved.email,
         phoneNumber: saved.phoneNumber,
         location: saved.location,
+        grade: saved.grade || "",
       });
 
       toast.success("✅ Profile updated successfully!");
@@ -422,6 +433,27 @@ export default function UserProfile({ user, onUpdateUser }) {
                 className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm"
               />
             </div>
+
+            {/* Grade — students only */}
+            {user?.role === "user" && (
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <GraduationCap className="w-4 h-4 text-indigo-500" /> Your Grade / Level
+                </label>
+                <select
+                  name="grade"
+                  value={formData.grade}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed transition-all text-sm"
+                >
+                  <option value="">-- Select grade --</option>
+                  {GRADE_OPTIONS.map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Save button — only visible in edit mode */}
