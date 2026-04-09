@@ -1,0 +1,129 @@
+# Artillery Performance Test — Study Material API
+# ═══════════════════════════════════════════════════════════════════════════
+# Test Scenario:
+#   Simulates 100 concurrent users accessing the Study Material API.
+#   Phases:
+#     1. Warm-up    : 10 users over 30s   — gradual ramp-up
+#     2. Load       : 50 users over 60s   — sustained normal load
+#     3. Peak Spike : 100 users over 30s  — maximum concurrent users
+# ═══════════════════════════════════════════════════════════════════════════
+config:
+  target: "http://localhost:5000"
+  phases:
+    - name: "Warm-up Phase"
+      duration: 30
+      arrivalRate: 5
+      rampTo: 10
+    - name: "Sustained Load Phase"
+      duration: 60
+      arrivalRate: 50
+    - name: "Peak Spike Phase"
+      duration: 30
+      arrivalRate: 50
+      rampTo: 100
+
+  # HTTP timeouts & TLS
+  http:
+    timeout: 15
+
+  # Reusable variables
+  variables:
+    # Replace this with a valid JWT when running locally
+    # Run: node -e "const j=require('jsonwebtoken'); console.log(j.sign({id:'64f1a2b3c4d5e6f7a8b9c0d1',role:'student'},'your_jwt_secret',{expiresIn:'1d'}))"
+    authToken: "REPLACE_WITH_VALID_JWT_TOKEN"
+
+  # Metrics thresholds — test FAILS if not met (great for CI)
+  ensure:
+    thresholds:
+      - http.response_time.p95: 1000   # 95% of requests under 1 second
+      - http.response_time.p99: 2000   # 99% of requests under 2 seconds
+    conditions:
+      - expression: http.codes.2xx > 80  # At least 80% success rate
+
+  # Output JSON report for html-reporter
+  plugins:
+    ensure: {}
+
+scenarios:
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "GET All Materials (Public Listing)"
+    weight: 40  # 40% of traffic
+    flow:
+      - get:
+          url: "/api/materials"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          qs:
+            page: 1
+            limit: 10
+          expect:
+            - statusCode: 200
+            - hasProperty: "data"
+            - hasProperty: "pagination"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "GET Materials with Filters (Subject + Grade)"
+    weight: 20  # 20% of traffic
+    flow:
+      - get:
+          url: "/api/materials"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          qs:
+            subject: "mathematics"
+            grade: "10th"
+            sort: "latest"
+          expect:
+            - statusCode: 200
+
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "GET Single Material by ID"
+    weight: 20  # 20% of traffic
+    flow:
+      - get:
+          url: "/api/materials"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.data[0]._id"
+              as: "materialId"
+      - get:
+          url: "/api/materials/{{ materialId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "POST Download + Like Engagement"
+    weight: 15  # 15% of traffic
+    flow:
+      - get:
+          url: "/api/materials"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.data[0]._id"
+              as: "materialId"
+      - post:
+          url: "/api/materials/{{ materialId }}/download"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+      - post:
+          url: "/api/materials/{{ materialId }}/like"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "Health Check"
+    weight: 5  # 5% of traffic
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200

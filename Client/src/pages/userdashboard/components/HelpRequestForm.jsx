@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, FileText, Tag, Globe, Loader2 } from "lucide-react";
+import { Send, FileText, Tag, Globe, Loader2, ArrowLeft } from "lucide-react";
 import Field from "./Field";
 import CustomSelect from "./CustomSelect";
 import CharCount from "./CharCount";
@@ -15,10 +15,20 @@ export default function HelpRequestForm({
   onFormChange,
   onSubmit,
   onLanguageChange,
+  isEditMode = false,
+  editingMessage = null,
+  onCancelEdit = null,
 }) {
   const [formLanguage, setFormLanguage] = useState("English");
   const t = translations[formLanguage];
   const selectedCategory = CATEGORIES.find((c) => c.value === form.category);
+
+  // Initialize language from editing message if available
+  useEffect(() => {
+    if (editingMessage && editingMessage.language) {
+      setFormLanguage(editingMessage.language);
+    }
+  }, [editingMessage]);
 
   // Handle language change and notify parent
   const handleLanguageChange = (newLanguage) => {
@@ -35,12 +45,25 @@ export default function HelpRequestForm({
       transition={{ delay: 0.1, duration: 0.5 }}
       className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-7"
     >
-      {/* Language Selector - Top Right */}
-      <div className="flex justify-end mb-6">
-        <FormLanguageSelector 
-          selectedLanguage={formLanguage}
-          onChange={handleLanguageChange}
-        />
+      {/* Back Button & Language Selector Row */}
+      <div className="flex items-center justify-between mb-6">
+        {editingMessage && onCancelEdit && (
+          <motion.button
+            onClick={onCancelEdit}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 px-3 py-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </motion.button>
+        )}
+        <div className={editingMessage ? "ml-auto" : ""}>
+          <FormLanguageSelector 
+            selectedLanguage={formLanguage}
+            onChange={handleLanguageChange}
+          />
+        </div>
       </div>
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
@@ -138,12 +161,12 @@ export default function HelpRequestForm({
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              {t.buttons.submitting}
+              {editingMessage ? t.buttons.updating : t.buttons.submitting}
             </>
           ) : (
             <>
               <Send className="w-4 h-4" />
-              {t.buttons.submit}
+              {editingMessage ? "Update Message" : t.buttons.submit}
             </>
           )}
         </motion.button>
