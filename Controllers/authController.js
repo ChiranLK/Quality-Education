@@ -1,4 +1,5 @@
 import User from "../models/UserModel.js";
+import StudyMaterial from "../models/StudyMaterialModel.js";
 import bcrypt from "bcryptjs";
 import { createJWT } from "../utils/generateToken.js";
 import { hashPassword } from "../utils/passwordUtils.js";
@@ -502,6 +503,9 @@ export const deleteUser = async (req, res) => {
         });
       }
     }
+
+    // Cascade delete associated study materials
+    await StudyMaterial.deleteMany({ uploadedBy: userId });
 
     // Delete the user
     await User.findByIdAndDelete(userId);
