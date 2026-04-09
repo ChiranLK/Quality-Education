@@ -3,6 +3,15 @@ import { Calendar, Clock, MapPin, Loader, AlertCircle, BookOpen, Plus, Edit, Tra
 import customFetch from '../../../utils/customfetch';
 import { SessionForm } from '../../../components/tutoringSessions';
 
+function formatSubjectDisplay(subject) {
+  if (!subject || typeof subject !== 'string') return '';
+  return subject
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export default function MySessions({ user }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +56,7 @@ export default function MySessions({ user }) {
     try {
       // Transform form data to match API schema
       const apiData = {
+        title: formData.title,
         subject: formData.subject,
         description: formData.description,
         schedule: {
@@ -183,9 +193,18 @@ export default function MySessions({ user }) {
                       <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-                        {session.studentId?.fullName || session.subject || 'Untitled Session'}
-                      </h3>
+                      <div className="mb-3">
+                        <h3 className="font-semibold text-gray-900 dark:text-white leading-snug">
+                          {(session.title && String(session.title).trim()) ||
+                            formatSubjectDisplay(session.subject) ||
+                            'Untitled Session'}
+                        </h3>
+                        {session.title?.trim() && session.subject ? (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Subject: {formatSubjectDisplay(session.subject)}
+                          </p>
+                        ) : null}
+                      </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                           <Calendar className="w-4 h-4" />
@@ -198,7 +217,7 @@ export default function MySessions({ user }) {
                         {(session.topic || session.description) && (
                           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                             <MapPin className="w-4 h-4" />
-                            <span>{session.topic || session.subject}</span>
+                            <span>{session.topic || session.description}</span>
                           </div>
                         )}
                       </div>

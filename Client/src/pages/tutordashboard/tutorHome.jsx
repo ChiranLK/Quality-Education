@@ -133,7 +133,9 @@ export default function TutorHome({ user, onNavigate }) {
                       <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                          {session.subject || 'Tutoring Session'}
+                          {(session.title && String(session.title).trim()) ||
+                            session.subject ||
+                            'Tutoring Session'}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{dateStr}</p>
                       </div>

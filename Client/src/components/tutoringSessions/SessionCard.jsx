@@ -1,6 +1,15 @@
 // src/components/tutoringSessions/SessionCard.jsx
 import { CalendarDays, Clock, Users, Edit, Trash2 } from 'lucide-react';
 
+function formatSubjectDisplay(subject) {
+  if (!subject || typeof subject !== 'string') return '';
+  return subject
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
 const SessionCard = ({ session, onEdit, onDelete, onViewDetails }) => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -21,12 +30,16 @@ const SessionCard = ({ session, onEdit, onDelete, onViewDetails }) => {
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-            {session.title}
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1 leading-snug">
+            {(session.title && String(session.title).trim()) ||
+              formatSubjectDisplay(session.subject) ||
+              'Untitled session'}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {session.subject}
-          </p>
+          {session.title?.trim() && session.subject ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Subject: {formatSubjectDisplay(session.subject)}
+            </p>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <button

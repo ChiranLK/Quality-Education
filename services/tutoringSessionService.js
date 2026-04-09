@@ -35,9 +35,14 @@ export async function createSession(user, payload) {
     grade,
   } = payload;
 
+  // Ensure title is always provided
+  if (!title || !title.trim()) {
+    throw new Error("Session title is required");
+  }
+
   const sessionData = {
     tutor: user.userId,
-    title: title || subject,
+    title: title.trim(),
     subject: String(subject).trim().toLowerCase(),
     description: String(description).trim(),
     topic: topic ? String(topic).trim() : undefined,
@@ -55,6 +60,8 @@ export async function createSession(user, payload) {
     isPublished: true,
   };
 
+  console.log("📝 Creating tutoring session with title:", title);
+
   const session = await TutoringSession.create(sessionData);
   await session.populate("tutor", "fullName email role");
 
@@ -64,9 +71,14 @@ export async function createSession(user, payload) {
       const googleEventId = await createCalendarEvent(session);
       session.googleEventId = googleEventId;
       await session.save();
-      console.log("✅ Google Calendar event created:", googleEventId);
+      console.log("✅ Tutoring session created successfully with calendar event:", {
+        sessionId: session._id,
+        title: session.title,
+        googleEventId,
+      });
     } catch (err) {
-      console.error("Calendar create error:", err.message);
+      console.error("⚠️ Calendar event creation failed (session saved):", err.message);
+      // Session is still created even if calendar fails
     }
   }
 
@@ -90,8 +102,14 @@ export async function updateSession(user, id, updates) {
   if (updated.googleEventId) {
     try {
       await updateCalendarEvent(updated.googleEventId, updated);
+      console.log("✅ Session and calendar event updated:", {
+        sessionId: updated._id,
+        title: updated.title,
+        googleEventId: updated.googleEventId,
+      });
     } catch (err) {
-      console.error("Calendar update failed:", err.message);
+      console.error("⚠️ Calendar update failed (session still updated):", err.message);
+      // Session is updated even if calendar update fails
     }
   }
   return updated;
@@ -103,15 +121,19 @@ export async function deleteSession(user, id) {
   ensureSessionExists(session);
   checkOwnershipOrAdmin(session, user);
 
-  if (session.googleEventId) {
+  let googleEventId = session.googleEventId;
+  if (googleEventId) {
     try {
-      await deleteCalendarEvent(session.googleEventId);
+      await deleteCalendarEvent(googleEventId);
+      console.log("✅ Calendar event deleted:", googleEventId);
     } catch (err) {
-      console.error("Calendar delete failed:", err.message);
+      console.error("⚠️ Calendar delete failed:", err.message);
+      // Continue with session deletion even if calendar delete fails
     }
   }
 
   await TutoringSession.findByIdAndDelete(id);
+  console.log("✅ Session deleted:", { sessionId: id, title: session.title });
   return;
 }
 
