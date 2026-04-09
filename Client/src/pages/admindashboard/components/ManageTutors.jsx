@@ -183,10 +183,8 @@ export default function ManageTutors() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">{tutor.fullName}</h3>
-                          {isVerified ? (
+                          {isVerified && (
                             <CheckCircle className="w-4 h-4 text-green-500" title="Verified Tutor" />
-                          ) : (
-                            <AlertTriangle className="w-4 h-4 text-amber-500" title="Pending Verification" />
                           )}
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
@@ -197,14 +195,7 @@ export default function ManageTutors() {
                   </div>
 
                   {/* Highlights Grid */}
-                  <div className="grid grid-cols-2 gap-4 mb-5 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800">
-                    <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Hourly Rate</span>
-                      <div className="flex items-center gap-1.5 text-gray-900 dark:text-white font-semibold">
-                        <DollarSign className="w-4 h-4 text-green-600" />
-                        {tp.hourlyRate ? `$${tp.hourlyRate}/hr` : 'N/A'}
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-1 gap-4 mb-5 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-800">
                     <div>
                       <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Student Rating</span>
                       <div className="flex items-center gap-1.5 text-gray-900 dark:text-white font-semibold flex-wrap">
