@@ -7,6 +7,7 @@ import DarkModeToggle from "../../components/DarkModeToggle";
 import { AllFeedbacks, AdminProgress } from "../../components/feedback/index.js";
 import StudyMaterials from "../tutordashboard/components/StudyMaterials.jsx";
 import ManageUsers from "./components/ManageUsers.jsx";
+import ManageTutors from "./components/ManageTutors.jsx";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -97,6 +98,10 @@ export default function AdminDashboard({ user, onLogout }) {
     setCurrentView('users');
   };
 
+  const handleViewTutors = () => {
+    setCurrentView('tutors');
+  };
+
   const handleBackToDashboard = () => {
     setCurrentView('dashboard');
   };
@@ -119,6 +124,10 @@ export default function AdminDashboard({ user, onLogout }) {
         return (
           <ManageUsers />
         );
+      case 'tutors':
+        return (
+          <ManageTutors />
+        );
       default:
         return (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -135,7 +144,7 @@ export default function AdminDashboard({ user, onLogout }) {
 
             <div
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
-              onClick={handleViewUsers}
+              onClick={handleViewTutors}
             >
               <div className="bg-orange-50 dark:bg-orange-900/40 w-10 h-10 rounded-xl flex items-center justify-center mb-4">
                 <BookOpen className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -302,7 +311,7 @@ export default function AdminDashboard({ user, onLogout }) {
           </>
         )}
 
-        <div className={currentView === 'feedbacks' || currentView === 'progress' || currentView === 'materials' || currentView === 'users' ? "bg-white dark:bg-gray-800 rounded-lg p-6" : ""}>
+        <div className={currentView === 'feedbacks' || currentView === 'progress' || currentView === 'materials' || currentView === 'users' || currentView === 'tutors' ? "bg-white dark:bg-gray-800 rounded-lg p-6" : ""}>
           {renderContent()}
         </div>
       </main>
