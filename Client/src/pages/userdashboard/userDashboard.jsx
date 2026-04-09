@@ -151,7 +151,7 @@ export default function UserDashboard({ user, onLogout, onUpdateUser }) {
                 <ArrowLeft className="w-4 h-4" />
                 Back to Home
               </button>
-              <StudentMaterials />
+              <StudentMaterials user={user} />
             </div>
           )}
 
