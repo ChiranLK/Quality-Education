@@ -10,6 +10,7 @@ const SUBJECT_OPTIONS = [
 
 const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
   const [formData, setFormData] = useState({
+    title: '',
     subject: '',
     manualSubject: '',
     description: '',
@@ -35,6 +36,7 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
     if (session) {
       const isManual = session.subject && !SUBJECT_OPTIONS.map(s => s.toLowerCase()).includes(session.subject.toLowerCase());
       setFormData({
+        title: session.title || '',
         subject: isManual ? 'other' : (session.subject || ''),
         manualSubject: isManual ? session.subject : '',
         description: session.description || '',
@@ -52,6 +54,7 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
       setShowManualSubject(isManual);
     } else {
       setFormData({
+        title: '',
         subject: '',
         manualSubject: '',
         description: '',
@@ -74,6 +77,15 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
 
   const validateForm = () => {
     const newErrors = {};
+
+    const titleTrimmed = formData.title.trim();
+    if (!titleTrimmed) {
+      newErrors.title = 'Session title is required';
+    } else if (titleTrimmed.length < 3) {
+      newErrors.title = 'Title must be at least 3 characters';
+    } else if (titleTrimmed.length > 100) {
+      newErrors.title = 'Title cannot exceed 100 characters';
+    }
 
     if (!formData.subject.trim()) {
       newErrors.subject = 'Subject is required';
@@ -127,8 +139,13 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
     setIsSubmitting(true);
     try {
       const finalData = {
-        ...formData,
-        subject: formData.subject === 'other' ? formData.manualSubject : formData.subject
+        title: formData.title.trim(),
+        subject: formData.subject === 'other' ? formData.manualSubject : formData.subject,
+        description: formData.description,
+        schedule: formData.schedule,
+        capacity: formData.capacity,
+        level: formData.level,
+        tags: formData.tags,
       };
       await onSave(finalData);
     } catch (error) {
@@ -217,6 +234,26 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+              Session Title <span className="text-red-500">*</span>{' '}
+              <span className="font-normal text-gray-400">({formData.title.length}/100)</span>
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              maxLength={100}
+              disabled={isSubmitting}
+              placeholder="e.g., Mathematics Tutoring — Algebra basics"
+              className={`w-full px-4 py-2.5 bg-white dark:bg-gray-800 border rounded-xl transition-all focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:text-white text-sm disabled:opacity-50 outline-none ${
+                errors.title ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'
+              }`}
+            />
+            {errors.title && <p className="text-[10px] font-bold text-red-500 uppercase mt-1.5">{errors.title}</p>}
+          </div>
+
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
               Subject <span className="text-red-500">*</span>

@@ -34,8 +34,12 @@ export const getCalendar = () => {
 
 // Helper: Convert schedule to Google Calendar event
 const buildEventObject = (session) => {
-  const { schedule } = session;
+  const { schedule, title, description, participants } = session;
 
+  // Validate required fields
+  if (!title || !title.trim()) {
+    throw new Error("Session title is required for calendar event");
+  }
   if (!schedule?.date || !schedule?.startTime || !schedule?.endTime) {
     throw new Error("Invalid session schedule data");
   }
@@ -46,37 +50,91 @@ const buildEventObject = (session) => {
   const startDateTime = new Date(`${dateStr}T${schedule.startTime}:00+05:30`);
   const endDateTime = new Date(`${dateStr}T${schedule.endTime}:00+05:30`);
 
-  return {
-    summary: session.title,
-    description: session.description,
+  const eventObject = {
+    summary: title.trim(),
+    description: description ? description.trim() : "Tutoring Session",
     start: { dateTime: startDateTime.toISOString(), timeZone: "Asia/Colombo" },
     end: { dateTime: endDateTime.toISOString(), timeZone: "Asia/Colombo" },
-    attendees: Array.isArray(session.participants)
-      ? session.participants
+    attendees: Array.isArray(participants)
+      ? participants
           .map((p) => p.userId?.email)
           .filter(Boolean)
           .map((email) => ({ email }))
       : [],
   };
+
+  // Log for debugging
+  console.log("🗓️ Building calendar event:", {
+    summary: eventObject.summary,
+    startTime: eventObject.start.dateTime,
+    endTime: eventObject.end.dateTime,
+    attendeeCount: eventObject.attendees.length,
+  });
+
+  return eventObject;
 };
 
 // Create event
 export const createCalendarEvent = async (session) => {
   const cal = getCalendar();
   const event = buildEventObject(session);
-  const response = await cal.events.insert({ calendarId: "primary", resource: event });
-  return response.data.id;
+  
+  try {
+    const response = await cal.events.insert({ calendarId: "primary", resource: event });
+    console.log(`✅ Calendar event created successfully:`, {
+      eventId: response.data.id,
+      title: response.data.summary,
+      start: response.data.start.dateTime,
+      htmlLink: response.data.htmlLink,
+    });
+    return response.data.id;
+  } catch (error) {
+    console.error("❌ Failed to create calendar event:", {
+      error: error.message,
+      title: event.summary,
+      schedule: { start: event.start, end: event.end },
+    });
+    throw error;
+  }
 };
 
 // Update event
 export const updateCalendarEvent = async (googleEventId, session) => {
   const cal = getCalendar();
   const event = buildEventObject(session);
-  await cal.events.update({ calendarId: "primary", eventId: googleEventId, resource: event });
+  
+  try {
+    const response = await cal.events.update({ 
+      calendarId: "primary", 
+      eventId: googleEventId, 
+      resource: event 
+    });
+    console.log(`✅ Calendar event updated successfully:`, {
+      eventId: googleEventId,
+      title: response.data.summary,
+      start: response.data.start.dateTime,
+    });
+  } catch (error) {
+    console.error("❌ Failed to update calendar event:", {
+      eventId: googleEventId,
+      error: error.message,
+      title: event.summary,
+    });
+    throw error;
+  }
 };
 
 // Delete event
 export const deleteCalendarEvent = async (googleEventId) => {
   const cal = getCalendar();
-  await cal.events.delete({ calendarId: "primary", eventId: googleEventId });
+  try {
+    await cal.events.delete({ calendarId: "primary", eventId: googleEventId });
+    console.log(`✅ Calendar event deleted successfully:`, googleEventId);
+  } catch (error) {
+    console.error("❌ Failed to delete calendar event:", {
+      eventId: googleEventId,
+      error: error.message,
+    });
+    throw error;
+  }
 };
