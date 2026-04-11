@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Loader, AlertCircle, BookOpen, Plus, Edit, Trash2 } from 'lucide-react';
-import customFetch from '../../../utils/customfetch';
 import { SessionForm } from '../../../components/tutoringSessions';
+// ✅ Context API — replaces direct customFetch calls
+import { useSession } from '../../../context/SessionContext';
 
 function formatSubjectDisplay(subject) {
   if (!subject || typeof subject !== 'string') return '';
@@ -12,36 +13,45 @@ function formatSubjectDisplay(subject) {
     .join(' ');
 }
 
+/**
+ * MySessions — Tutor's session management panel.
+ *
+ * Uses SessionContext for all CRUD operations.
+ * Local state is limited to UI concerns only (form open/close, editing target).
+ */
 export default function MySessions({ user }) {
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  // ✅ Context hooks — no direct customFetch
+  const {
+    mySessions,
+    loading,
+    error,
+    setError,
+    fetchMySessions,
+    createSession,
+    updateSession,
+    deleteSession,
+  } = useSession();
+
+  // ── UI-only local state ────────────────────────────────────────────────────
+  const [isFormOpen, setIsFormOpen]       = useState(false);
   const [editingSession, setEditingSession] = useState(null);
 
+  // ── Load tutor's sessions on mount ────────────────────────────────────────
   useEffect(() => {
     if (user?._id) {
-      fetchSessions();
+      fetchMySessions(user._id);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const fetchSessions = async () => {
-    try {
-      setLoading(true);
-      const { data } = await customFetch.get('/tutoring-sessions');
-      const filteredSessions = (data.sessions || []).filter(s => 
-        String(s.tutor?._id || s.tutor) === String(user?._id)
-      );
-      setSessions(filteredSessions.sort((a, b) => 
-        new Date(b.schedule?.date || b.scheduledDate) - new Date(a.schedule?.date || a.scheduledDate)
-      ));
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load sessions');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ── Sort sessions newest-first for display ────────────────────────────────
+  const sessions = [...mySessions].sort(
+    (a, b) =>
+      new Date(b.schedule?.date || b.scheduledDate) -
+      new Date(a.schedule?.date || a.scheduledDate)
+  );
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleCreate = () => {
     setEditingSession(null);
     setIsFormOpen(true);
@@ -54,48 +64,40 @@ export default function MySessions({ user }) {
 
   const handleSave = async (formData) => {
     try {
-      // Transform form data to match API schema
       const apiData = {
-        title: formData.title,
-        subject: formData.subject,
+        title:    formData.title,
+        subject:  formData.subject,
         description: formData.description,
         schedule: {
-          date: new Date(formData.schedule.date),
+          date:      new Date(formData.schedule.date),
           startTime: formData.schedule.startTime,
-          endTime: formData.schedule.endTime,
+          endTime:   formData.schedule.endTime,
         },
-        capacity: {
-          maxParticipants: formData.capacity.maxParticipants,
-        },
+        capacity: { maxParticipants: formData.capacity.maxParticipants },
         level: formData.level,
         grade: formData.grade,
-        tags: formData.tags,
+        tags:  formData.tags,
       };
 
       if (editingSession) {
-        await customFetch.put(`/tutoring-sessions/${editingSession._id}`, apiData);
+        await updateSession(editingSession._id, apiData);
       } else {
-        await customFetch.post('/tutoring-sessions', {
-          ...apiData,
-          tutor: user._id,
-        });
+        await createSession({ ...apiData, tutor: user._id });
       }
+
       setIsFormOpen(false);
       setEditingSession(null);
-      await fetchSessions();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save session');
     }
   };
 
   const handleDelete = async (sessionId) => {
-    if (window.confirm('Are you sure you want to delete this session?')) {
-      try {
-        await customFetch.delete(`/tutoring-sessions/${sessionId}`);
-        setSessions(sessions.filter(s => s._id !== sessionId));
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to delete session');
-      }
+    if (!window.confirm('Are you sure you want to delete this session?')) return;
+    try {
+      await deleteSession(sessionId);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete session');
     }
   };
 
@@ -104,12 +106,10 @@ export default function MySessions({ user }) {
     setEditingSession(null);
   };
 
-  const getSessionStatus = (date) => {
-    const now = new Date();
-    const sessionDate = new Date(date);
-    return sessionDate > now ? 'Upcoming' : 'Completed';
-  };
+  const getSessionStatus = (date) =>
+    new Date(date) > new Date() ? 'Upcoming' : 'Completed';
 
+  // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -139,10 +139,10 @@ export default function MySessions({ user }) {
             <Plus className="w-4 h-4" />
             New Session
           </button>
-
         </div>
       </div>
 
+      {/* Error banner */}
       {error && (
         <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg">
           <AlertCircle size={18} />
@@ -156,8 +156,9 @@ export default function MySessions({ user }) {
         </div>
       )}
 
+      {/* Empty state */}
       {sessions.length === 0 ? (
-        <div className="text-center py-12 bg-linear-to-br from-emerald-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+        <div className="text-center py-12 bg-gradient-to-br from-emerald-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
           <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Sessions Yet</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-6">Start by creating your first tutoring session</p>
@@ -168,22 +169,16 @@ export default function MySessions({ user }) {
             <Plus className="w-4 h-4" />
             Create Your First Session
           </button>
-
         </div>
       ) : (
         <div className="space-y-3">
           {sessions.map(session => {
-            const status = getSessionStatus(session.schedule?.date || session.scheduledDate);
+            const status     = getSessionStatus(session.schedule?.date || session.scheduledDate);
             const sessionDate = new Date(session.schedule?.date || session.scheduledDate);
-            const dateStr = sessionDate.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric',
-              year: sessionDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-            });
-            const timeStr = sessionDate.toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
+            const dateStr    = sessionDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day:   'numeric',
+              year:  sessionDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
             });
 
             return (
@@ -208,12 +203,11 @@ export default function MySessions({ user }) {
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <Calendar className="w-4 h-4" />
-                          <span>{dateStr}</span>
+                          <Calendar className="w-4 h-4" /><span>{dateStr}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                           <Clock className="w-4 h-4" />
-                          <span>{session.schedule?.startTime || '--:--'} - {session.schedule?.endTime || '--:--'}</span>
+                          <span>{session.schedule?.startTime || '--:--'} – {session.schedule?.endTime || '--:--'}</span>
                         </div>
                         {(session.topic || session.description) && (
                           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -224,6 +218,7 @@ export default function MySessions({ user }) {
                       </div>
                     </div>
                   </div>
+
                   <div className="flex flex-col items-end gap-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                       status === 'Upcoming'

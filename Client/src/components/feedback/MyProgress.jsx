@@ -1,44 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Loader, AlertCircle, TrendingUp } from 'lucide-react';
 import ProgressCard from './ProgressCard';
-import customFetch from '../../utils/customfetch';
+// ✅ Context API — replaces direct customFetch call
+import { useProgress } from '../../context/ProgressContext';
 
+/**
+ * MyProgress
+ *
+ * Student-facing view of their own progress records.
+ * All data is sourced from ProgressContext (fetchMyProgress / myProgress).
+ */
 export default function MyProgress() {
-  const [progress, setProgress] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, high, medium, low
+  const { myProgress: progress, loading, error, fetchMyProgress } = useProgress();
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    const fetchMyProgress = async () => {
-      try {
-        setLoading(true);
-        const { data } = await customFetch.get('/progress/me');
-        setProgress(data.progress || []);
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Failed to load progress');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMyProgress();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const getFilteredProgress = () => {
+  const getFiltered = () => {
     switch (filter) {
-      case 'high':
-        return progress.filter((p) => p.completionPercent >= 80);
-      case 'medium':
-        return progress.filter((p) => p.completionPercent >= 40 && p.completionPercent < 80);
-      case 'low':
-        return progress.filter((p) => p.completionPercent < 40);
-      default:
-        return progress;
+      case 'high':   return progress.filter((p) => p.completionPercent >= 80);
+      case 'medium': return progress.filter((p) => p.completionPercent >= 40 && p.completionPercent < 80);
+      case 'low':    return progress.filter((p) => p.completionPercent < 40);
+      default:       return progress;
     }
   };
 
-  const filteredProgress = getFilteredProgress();
+  const filtered = getFiltered();
   const avgCompletion =
     progress.length > 0
       ? Math.round(progress.reduce((sum, p) => sum + p.completionPercent, 0) / progress.length)
@@ -76,12 +66,12 @@ export default function MyProgress() {
 
       {/* Filter Tabs */}
       {progress.length > 0 && (
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           {[
-            { id: 'all', label: 'All' },
-            { id: 'high', label: 'On Track (80-100%)' },
-            { id: 'medium', label: 'In Progress (40-79%)' },
-            { id: 'low', label: 'Needs Attention (<40%)' },
+            { id: 'all',    label: 'All' },
+            { id: 'high',   label: 'On Track (80–100%)' },
+            { id: 'medium', label: 'In Progress (40–79%)' },
+            { id: 'low',    label: 'Needs Attention (<40%)' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -109,13 +99,13 @@ export default function MyProgress() {
             Your tutors will start tracking your progress
           </p>
         </div>
-      ) : filteredProgress.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="text-center py-8 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <p className="text-gray-600 dark:text-gray-400">No progress records in this category</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredProgress.map((prog) => (
+          {filtered.map((prog) => (
             <ProgressCard key={prog._id} progress={prog} showTutorInfo={true} />
           ))}
         </div>

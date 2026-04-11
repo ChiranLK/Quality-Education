@@ -1,7 +1,7 @@
 import { 
   BookOpen, Users, ShieldCheck, LogOut, User, BarChart2, 
   MessageSquare, TrendingUp, ArrowLeft, Calendar, Star, 
-  FileText, Activity, Settings, CheckCircle, AlertCircle, Clock, Search, Bell
+  FileText, Activity, Settings, CheckCircle, AlertCircle, Clock, Search, Bell, Loader2
 } from "lucide-react";
 import DarkModeToggle from "../../components/DarkModeToggle";
 import { AllFeedbacks, AdminProgress } from "../../components/feedback/index.js";
@@ -11,6 +11,7 @@ import ManageTutors from "./components/ManageTutors.jsx";
 import Reports from "./components/Reports.jsx";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import customFetch from "../../utils/customfetch";
 
 /* ─── animation variants ─── */
 const fadeUp = {
@@ -34,13 +35,7 @@ const scaleIn = {
   }),
 };
 
-/* ─── static mock data ─── */
-const STATS = [
-  { label: "Total Users",    value: "1,284", delta: "+12%", icon: Users,     color: "rose" },
-  { label: "Active Tutors",  value: "86",    delta: "+5%",  icon: BookOpen,  color: "orange" },
-  { label: "Sessions Today", value: "34",    delta: "+8%",  icon: Calendar,  color: "yellow" },
-  { label: "Avg. Rating",    value: "4.8",   delta: "+0.2", icon: Star,      color: "green" },
-];
+/* ─── Stats are fetched dynamically — see fetchStats() inside component ─── */
 
 const ACTIVITY = [
   { id: 1, type: "user",    text: "New user registered: Kamal Perera",         time: "2 min ago",  status: "success" },
@@ -76,8 +71,58 @@ export default function AdminDashboard({ user, onLogout }) {
   const [currentView, setCurrentView] = useState(() => {
     return sessionStorage.getItem('adminDashboardActiveView') || 'dashboard';
   });
-  const [search, setSearch] = useState('');
+  const [search, setSearch]       = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
+
+  // ── Real platform stats ──────────────────────────────────────────────────────
+  const [stats, setStats]           = useState(null);   // null = loading
+  const [statsError, setStatsError] = useState(false);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    setStats(null);
+    setStatsError(false);
+    try {
+      // Parallel requests for all stat sources
+      const [usersRes, sessionsRes, feedbacksRes] = await Promise.all([
+        customFetch.get('/auth/all-users'),
+        customFetch.get('/tutoring-sessions'),
+        customFetch.get('/feedbacks'),
+      ]);
+
+      const allUsers  = usersRes.data.users  || usersRes.data.data  || [];
+      const sessions  = sessionsRes.data.sessions || sessionsRes.data.data || [];
+      const feedbacks = feedbacksRes.data.feedbacks || feedbacksRes.data.data || [];
+
+      const students = allUsers.filter((u) => u.role === 'user');
+      const tutors   = allUsers.filter((u) => u.role === 'tutor');
+
+      // Compute average rating from all feedbacks
+      const avgRating = feedbacks.length
+        ? (feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0) / feedbacks.length).toFixed(1)
+        : '—';
+
+      setStats([
+        { label: 'Total Students', value: students.length.toString(), delta: 'registered', icon: Users,    color: 'rose'   },
+        { label: 'Active Tutors',  value: tutors.length.toString(),   delta: 'verified',   icon: BookOpen, color: 'orange' },
+        { label: 'Total Sessions', value: sessions.length.toString(), delta: 'created',    icon: Calendar, color: 'yellow' },
+        { label: 'Avg. Rating',    value: avgRating,                  delta: 'from reviews', icon: Star,   color: 'green'  },
+      ]);
+    } catch (err) {
+      console.error('Failed to load admin stats:', err);
+      setStatsError(true);
+      // Fallback to placeholder values
+      setStats([
+        { label: 'Total Students', value: '—', delta: 'unavailable', icon: Users,    color: 'rose'   },
+        { label: 'Active Tutors',  value: '—', delta: 'unavailable', icon: BookOpen, color: 'orange' },
+        { label: 'Total Sessions', value: '—', delta: 'unavailable', icon: Calendar, color: 'yellow' },
+        { label: 'Avg. Rating',    value: '—', delta: 'unavailable', icon: Star,     color: 'green'  },
+      ]);
+    }
+  };
 
   useEffect(() => {
     sessionStorage.setItem('adminDashboardActiveView', currentView);
@@ -139,7 +184,42 @@ export default function AdminDashboard({ user, onLogout }) {
         );
       default:
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <>
+            {/* ── Platform Stats (real API data) ─────────────────── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              {stats === null
+                ? /* Loading skeletons */
+                  [1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 animate-pulse">
+                      <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-700 mb-4" />
+                      <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
+                      <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+                    </div>
+                  ))
+                : stats.map((stat, i) => {
+                    const colors = COLOR_MAP[stat.color] || COLOR_MAP.rose;
+                    const Icon   = stat.icon;
+                    return (
+                      <motion.div key={stat.label} custom={i} variants={scaleIn} initial="hidden" animate="show"
+                        className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700"
+                      >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${colors.bg}`}>
+                          <Icon className={`w-5 h-5 ${colors.icon}`} />
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {stat.value}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <span className="font-semibold text-gray-700 dark:text-gray-300 capitalize">{stat.label}</span>
+                          &nbsp;·&nbsp;{stat.delta}
+                        </p>
+                      </motion.div>
+                    );
+                  })}
+            </div>
+
+            {/* ── Management Action Cards ─────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <div
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
               onClick={handleViewUsers}
@@ -206,6 +286,7 @@ export default function AdminDashboard({ user, onLogout }) {
               <p className="text-gray-400 dark:text-gray-500 text-sm">View platform analytics and stats.</p>
             </div>
           </div>
+          </>
         );
     }
   };

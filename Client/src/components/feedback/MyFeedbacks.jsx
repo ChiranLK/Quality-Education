@@ -1,27 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Loader, AlertCircle, MessageSquare } from 'lucide-react';
 import FeedbackCard from './FeedbackCard';
-import customFetch from '../../utils/customfetch';
+// ✅ Context API — replaces direct customFetch call
+import { useFeedback } from '../../context/FeedbackContext';
 
+/**
+ * MyFeedbacks
+ *
+ * Displays feedbacks a student has submitted.
+ * All data is sourced from FeedbackContext.
+ */
 export default function MyFeedbacks() {
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { myFeedbacks: feedbacks, loading, error, fetchMyFeedbacks } = useFeedback();
 
   useEffect(() => {
-    const fetchMyFeedbacks = async () => {
-      try {
-        setLoading(true);
-        const { data } = await customFetch.get('/feedbacks/me');
-        setFeedbacks(data.feedbacks || []);
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Failed to load feedbacks');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMyFeedbacks();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {

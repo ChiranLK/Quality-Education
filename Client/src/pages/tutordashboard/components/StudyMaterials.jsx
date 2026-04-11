@@ -5,7 +5,8 @@ import {
   BookOpen, Filter, CheckCircle, AlertCircle, Loader2,
   File, Image, FileType, Tag, GraduationCap, BookMarked
 } from 'lucide-react';
-import customFetch from '../../../utils/customfetch';
+// ✅ Context API — replaces direct customFetch calls
+import { useStudyMaterial } from '../../../context/StudyMaterialContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const GRADE_OPTIONS = [
@@ -74,7 +75,7 @@ function Toast({ toast, onClose }) {
 }
 
 // ─── Upload / Edit Modal ──────────────────────────────────────────────────────
-function MaterialModal({ mode, material, onClose, onSuccess }) {
+function MaterialModal({ mode, material, onClose, onSuccess, onUpload, onUpdate }) {
   const [form, setForm] = useState({
     title: material?.title || '',
     description: material?.description || '',
@@ -137,24 +138,23 @@ function MaterialModal({ mode, material, onClose, onSuccess }) {
       const fd = new FormData();
       fd.append('title', form.title.trim());
       fd.append('description', form.description.trim());
-      
+
       const finalSubject = (form.subject === 'other' ? form.manualSubject : form.subject).trim().toLowerCase();
       fd.append('subject', finalSubject);
-      
       fd.append('grade', form.grade.trim());
       fd.append('status', form.status);
 
-      // Tags: parse comma-separated
       const tags = form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
       tags.forEach(tag => fd.append('tags[]', tag));
 
       if (file) fd.append('file', file);
 
+      // ✅ Use context's uploadMaterial / updateMaterial
       if (mode === 'create') {
-        await customFetch.post('/materials', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await onUpload(fd);          // passed as prop from parent
         onSuccess('Material uploaded successfully!');
       } else {
-        await customFetch.patch(`/materials/${material._id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await onUpdate(material._id, fd);   // passed as prop from parent
         onSuccess('Material updated successfully!');
       }
       onClose();
@@ -497,73 +497,72 @@ function MaterialCard({ material, onEdit, onDelete, onDownload, onToggleStatus }
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
+/**
+ * StudyMaterials
+ *
+ * Uses StudyMaterialContext for all data operations.
+ * UI-only state: search, filters, modal visibility.
+ */
 export default function StudyMaterials({ user }) {
-  const [materials, setMaterials] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ current: 1, total: 1, count: 0 });
-  const [search, setSearch] = useState('');
-  const [filterSubject, setFilterSubject] = useState('');
-  const [filterGrade, setFilterGrade] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  // ✅ Context hooks
+  const {
+    materials,
+    loading,
+    pagination,
+    fetchMaterials:   fetchCtx,
+    uploadMaterial,
+    updateMaterial,
+    deleteMaterial,
+    recordDownload,
+    toggleStatus,
+  } = useStudyMaterial();
 
-  const [modal, setModal] = useState(null); // null | { type: 'create'|'edit'|'delete', material? }
+  // ── UI-only state ────────────────────────────────────────────────────
+  const [search, setSearch]             = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterGrade, setFilterGrade]   = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [showFilters, setShowFilters]   = useState(false);
+  const [modal, setModal]               = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast]               = useState(null);
 
   const page = pagination.current;
 
-  // Fetch my materials
-  const fetchMaterials = async (pg = 1) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page: pg, limit: 9 });
-      if (search) params.set('keyword', search);
-      if (filterSubject) params.set('subject', filterSubject);
-      if (filterGrade) params.set('grade', filterGrade);
-      if (filterStatus) params.set('status', filterStatus);
-
-      const endpoint = user?.role === 'admin' ? '/materials' : '/materials/my';
-      const { data } = await customFetch.get(`${endpoint}?${params}`);
-      setMaterials(data.data || []);
-      setPagination({
-        current: data.pagination?.current || 1,
-        total: data.pagination?.pages || 1,
-        count: data.pagination?.total || 0,
-      });
-
-    } catch (err) {
-      showToast('Failed to load materials.', 'error');
-    } finally {
-      setLoading(false);
-    }
+  // ── Helper: build query params and call context fetch ───────────────────
+  const loadMaterials = (pg = 1) => {
+    fetchCtx({
+      page: pg,
+      limit: 9,
+      keyword: search,
+      subject: filterSubject,
+      grade: filterGrade,
+      status: filterStatus,
+      role: user?.role,           // context uses this to pick /materials vs /materials/my
+    });
   };
 
   useEffect(() => {
-    fetchMaterials(1);
+    loadMaterials(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterSubject, filterGrade, filterStatus]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchMaterials(1);
-  };
+  const handleSearch = (e) => { e.preventDefault(); loadMaterials(1); };
 
   const showToast = (message, type = 'success') => setToast({ message, type });
   const closeToast = () => setToast(null);
 
-  const handleUploadSuccess = (msg) => {
-    showToast(msg);
-    fetchMaterials(1);
-  };
+  const handleUploadSuccess = (msg) => { showToast(msg); loadMaterials(1); };
 
   const handleDelete = async () => {
     if (!modal?.material) return;
     setDeleteLoading(true);
     try {
-      await customFetch.delete(`/materials/${modal.material._id}`);
+      // ✅ delegated to context
+      await deleteMaterial(modal.material._id);
       showToast('Material deleted successfully.', 'delete');
       setModal(null);
-      fetchMaterials(page);
+      loadMaterials(page);
     } catch (err) {
       showToast(err.response?.data?.message || 'Delete failed.', 'error');
     } finally {
@@ -572,25 +571,21 @@ export default function StudyMaterials({ user }) {
   };
 
   const handleDownload = async (id) => {
-    try { await customFetch.post(`/materials/${id}/download`); } catch {}
+    try { await recordDownload(id); } catch {}
   };
 
   const clearFilters = () => {
-    setFilterSubject('');
-    setFilterGrade('');
-    setFilterStatus('');
-    setSearch('');
+    setFilterSubject(''); setFilterGrade(''); setFilterStatus(''); setSearch('');
   };
 
   const handleToggleStatus = async (material) => {
     try {
-      const newStatus = material.status === 'active' ? 'archived' : 'active';
-      const fd = new FormData();
-      fd.append('status', newStatus);
-      await customFetch.patch(`/materials/${material._id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      showToast(`Material ${newStatus === 'active' ? 'published' : 'unpublished'} successfully.`);
-      fetchMaterials(page);
-    } catch (err) {
+      // ✅ delegated to context
+      await toggleStatus(material._id, material.status);
+      const next = material.status === 'active' ? 'archived' : 'active';
+      showToast(`Material ${next === 'active' ? 'published' : 'unpublished'} successfully.`);
+      loadMaterials(page);
+    } catch {
       showToast('Failed to update status.', 'error');
     }
   };
@@ -741,7 +736,7 @@ export default function StudyMaterials({ user }) {
           {pagination.total > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
               <button
-                onClick={() => fetchMaterials(page - 1)} disabled={page <= 1}
+                onClick={() => loadMaterials(page - 1)} disabled={page <= 1}
                 className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -749,7 +744,7 @@ export default function StudyMaterials({ user }) {
                 Page <span className="font-semibold text-gray-900 dark:text-white">{page}</span> of {pagination.total}
               </span>
               <button
-                onClick={() => fetchMaterials(page + 1)} disabled={page >= pagination.total}
+                onClick={() => loadMaterials(page + 1)} disabled={page >= pagination.total}
                 className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -760,10 +755,12 @@ export default function StudyMaterials({ user }) {
 
       {/* Modals */}
       {modal?.type === 'create' && (
-        <MaterialModal mode="create" onClose={() => setModal(null)} onSuccess={handleUploadSuccess} />
+        <MaterialModal mode="create" onClose={() => setModal(null)} onSuccess={handleUploadSuccess}
+          onUpload={uploadMaterial} onUpdate={updateMaterial} />
       )}
       {modal?.type === 'edit' && (
-        <MaterialModal mode="edit" material={modal.material} onClose={() => setModal(null)} onSuccess={handleUploadSuccess} />
+        <MaterialModal mode="edit" material={modal.material} onClose={() => setModal(null)} onSuccess={handleUploadSuccess}
+          onUpload={uploadMaterial} onUpdate={updateMaterial} />
       )}
       {modal?.type === 'delete' && (
         <DeleteModal

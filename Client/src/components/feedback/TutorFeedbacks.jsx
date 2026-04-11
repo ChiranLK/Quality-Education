@@ -1,39 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Loader, AlertCircle, MessageSquare, Trash2 } from 'lucide-react';
 import FeedbackCard from './FeedbackCard';
-import customFetch from '../../utils/customfetch';
+// ✅ Context API — replaces direct customFetch calls
+import { useFeedback } from '../../context/FeedbackContext';
 
+/**
+ * TutorFeedbacks
+ *
+ * Displays feedbacks received by a tutor.
+ * Supports deleting individual feedbacks.
+ * All data is sourced from FeedbackContext.
+ */
 export default function TutorFeedbacks({ tutorId }) {
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    tutorFeedbacks: feedbacks,
+    loading,
+    error,
+    fetchTutorFeedbacks,
+    deleteTutorFeedback,
+  } = useFeedback();
 
   useEffect(() => {
-    const fetchTutorFeedbacks = async () => {
-      try {
-        setLoading(true);
-        const { data } = await customFetch.get(`/feedbacks/tutor/${tutorId}`);
-        setFeedbacks(data.feedbacks || []);
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Failed to load feedbacks');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (tutorId) {
-      fetchTutorFeedbacks();
-    }
+    if (tutorId) fetchTutorFeedbacks(tutorId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorId]);
 
   const handleDeleteFeedback = async (feedbackId) => {
-    if (!window.confirm('Are you sure you want to delete this feedback?')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this feedback?')) return;
     try {
-      await customFetch.delete(`/feedbacks/${feedbackId}`);
-      setFeedbacks(feedbacks.filter(f => f._id !== feedbackId));
+      await deleteTutorFeedback(feedbackId);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete feedback');
     }
