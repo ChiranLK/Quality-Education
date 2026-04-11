@@ -14,6 +14,8 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
     subject: '',
     manualSubject: '',
     description: '',
+    // ADD THIS
+    meetingLink: '',
     schedule: {
       date: '',
       startTime: '',
@@ -41,6 +43,8 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
         subject: isManual ? 'other' : (session.subject || ''),
         manualSubject: isManual ? session.subject : '',
         description: session.description || '',
+        // UPDATE THIS — populate meetingLink when editing
+        meetingLink: session.location?.meetingLink || '',
         schedule: {
           date: session.schedule?.date ? new Date(session.schedule.date).toISOString().split('T')[0] : '',
           startTime: session.schedule?.startTime || '',
@@ -60,6 +64,8 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
         subject: '',
         manualSubject: '',
         description: '',
+        // ADD THIS
+        meetingLink: '',
         schedule: {
           date: '',
           startTime: '',
@@ -128,6 +134,17 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
       newErrors.maxParticipants = 'Capacity must be between 1 and 100';
     }
 
+    // ADD THIS — meetingLink validation
+    if (!formData.meetingLink.trim()) {
+      newErrors.meetingLink = 'Google Meet link is required';
+    } else {
+      try {
+        new URL(formData.meetingLink.trim());
+      } catch {
+        newErrors.meetingLink = 'Must be a valid URL (e.g. https://meet.google.com/...)';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -150,6 +167,8 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
         level: formData.level,
         grade: formData.grade,
         tags: formData.tags,
+        // ADD THIS — nest inside location to match the DB schema
+        location: { type: 'online', meetingLink: formData.meetingLink.trim() },
       };
       await onSave(finalData);
     } catch (error) {
@@ -314,6 +333,26 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
               }`}
             />
             {errors.description && <p className="text-[10px] font-bold text-red-500 uppercase mt-1.5">{errors.description}</p>}
+          </div>
+
+          {/* ADD THIS — Google Meet Link field */}
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">
+              Google Meet Link <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="url"
+              name="meetingLink"
+              value={formData.meetingLink}
+              onChange={handleChange}
+              required
+              disabled={isSubmitting}
+              placeholder="https://meet.google.com/xxx-xxxx-xxx"
+              className={`w-full px-4 py-2.5 bg-white dark:bg-gray-800 border rounded-xl transition-all focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:text-white text-sm disabled:opacity-50 outline-none ${
+                errors.meetingLink ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'
+              }`}
+            />
+            {errors.meetingLink && <p className="text-[10px] font-bold text-red-500 uppercase mt-1.5">{errors.meetingLink}</p>}
           </div>
 
 
