@@ -1,4 +1,4 @@
-import { BookOpen, Users, CalendarDays, LogOut, User, ArrowLeft, Star, TrendingUp, MessageSquare } from "lucide-react";
+import { BookOpen, Users, CalendarDays, LogOut, User, ArrowLeft, Star, TrendingUp, MessageSquare, HelpCircle } from "lucide-react";
 import DarkModeToggle from "../../components/DarkModeToggle";
 import SessionList from "./sessions/SessionList";
 import SessionDetails from "./sessions/SessionDetails";
@@ -7,6 +7,7 @@ import TutorHome from "./tutorHome";
 import MySessions from "./components/MySessions";
 import StudentProgressManager from "./components/StudentProgressManager";
 import StudyMaterials from "./components/StudyMaterials";
+import HelpRequests from "./components/HelpRequests";
 import { useState, useEffect } from "react";
 
 export default function TutorDashboard({ user, onLogout }) {
@@ -33,6 +34,10 @@ export default function TutorDashboard({ user, onLogout }) {
 
   const handleViewFeedbacks = () => {
     setCurrentView('feedbacks');
+  };
+
+  const handleViewHelpRequests = () => {
+    setCurrentView('help-requests');
   };
 
   const handleBackToDashboard = () => {
@@ -70,6 +75,9 @@ export default function TutorDashboard({ user, onLogout }) {
       case 'Feedbacks':
       case 'feedbacks':
         return <TutorFeedbacks tutorId={user._id} />;
+      case 'Help Requests':
+      case 'help-requests':
+        return <HelpRequests user={user} />;
       case 'Study Materials':
       case 'study-materials':
         return <StudyMaterials user={user} />;

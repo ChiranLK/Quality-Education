@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, TrendingUp, Star, MessageSquare, Users, 
-  Loader, AlertCircle, ArrowRight, Clock, BookOpen 
+  Loader, AlertCircle, Clock, BookOpen, HelpCircle 
 } from 'lucide-react';
-
 import customFetch from '../../utils/customfetch';
+import { StatCard, QuickActionCard, SessionPreviewItem } from './components/DashboardComponents';
 
 export default function TutorHome({ user, onNavigate }) {
   const [stats, setStats] = useState({
@@ -99,172 +99,162 @@ export default function TutorHome({ user, onNavigate }) {
     );
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      {/* Welcome Section */}
+  // Define quick actions with consistent data structure
+  const quickActions = [
+    {
+      key: 'sessions',
+      label: 'My Sessions',
+      icon: Calendar,
+      description: 'View and manage your tutoring sessions',
+      iconBg: 'bg-indigo-50',
+      iconColor: 'text-indigo-600',
+      hoverBorder: 'hover:border-indigo-500',
+      hoverIconBg: 'group-hover:bg-indigo-600'
+    },
+    {
+      key: 'progress',
+      label: 'Student Progress',
+      icon: TrendingUp,
+      description: 'Track and update progress',
+      iconBg: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      hoverBorder: 'hover:border-blue-500',
+      hoverIconBg: 'group-hover:bg-blue-600'
+    },
+    {
+      key: 'ratings',
+      label: 'Your Ratings',
+      icon: Star,
+      description: 'View rating statistics',
+      iconBg: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+      hoverBorder: 'hover:border-amber-500',
+      hoverIconBg: 'group-hover:bg-amber-600'
+    },
+    {
+      key: 'feedbacks',
+      label: 'Feedbacks',
+      icon: MessageSquare,
+      description: 'Read feedback from students',
+      iconBg: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+      hoverBorder: 'hover:border-purple-500',
+      hoverIconBg: 'group-hover:bg-purple-600'
+    },
+    {
+      key: 'study-materials',
+      label: 'Study Materials',
+      icon: BookOpen,
+      description: 'Upload and manage learning resources',
+      iconBg: 'bg-orange-50',
+      iconColor: 'text-orange-600',
+      hoverBorder: 'hover:border-orange-500',
+      hoverIconBg: 'group-hover:bg-orange-600'
+    },
+    {
+      key: 'help-requests',
+      label: 'Help Requests',
+      icon: HelpCircle,
+      description: 'Browse and respond to student questions',
+      iconBg: 'bg-cyan-50',
+      iconColor: 'text-cyan-600',
+      hoverBorder: 'hover:border-cyan-500',
+      hoverIconBg: 'group-hover:bg-cyan-600'
+    }
+  ];
 
+  const handleNavigate = (actionKey) => {
+    // Map action key to the appropriate view
+    const viewMap = {
+      sessions: 'My Sessions',
+      progress: 'Student Progress',
+      ratings: 'Your Ratings',
+      feedbacks: 'Feedbacks',
+      'study-materials': 'study-materials',
+      'help-requests': 'Help Requests'
+    };
+    onNavigate?.(viewMap[actionKey]);
+  };
+
+  // Session preview with appropriate styling
+  const sessionPreview = stats.upcomingSessions > 0 ? (
+    <div>
+      <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3">Next Sessions</h4>
+      <div className="space-y-2 max-h-32 overflow-y-auto">
+        {stats.nextSessions.map((session, idx) => (
+          <SessionPreviewItem key={idx} session={session} Clock={Clock} />
+        ))}
+      </div>
+    </div>
+  ) : (
+    <p className="text-xs text-gray-500 dark:text-gray-400 italic">No upcoming sessions</p>
+  );
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6 space-y-8">
+      {/* Error Alert */}
       {error && (
-        <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg">
-          <AlertCircle size={18} />
+        <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800">
+          <AlertCircle size={18} className="flex-shrink-0" />
           <span className="text-sm">{error}</span>
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Upcoming Sessions */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-gray-600 dark:text-gray-400 text-sm font-semibold">Upcoming Sessions</h3>
-              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.upcomingSessions}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Scheduled sessions</p>
-          </div>
-          
-          {/* Preview Section */}
-          {stats.upcomingSessions > 0 ? (
-            <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-gray-50 dark:bg-gray-700/30">
-              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3">Next Sessions</h4>
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {stats.nextSessions.map((session, idx) => {
-                  const sessionDate = new Date(session.schedule?.date || session.scheduledDate);
-                  const dateStr = sessionDate.toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  });
-                  return (
-                    <div key={idx} className="flex items-start gap-2 p-2 rounded bg-white dark:bg-gray-800">
-                      <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                          {(session.title && String(session.title).trim()) ||
-                            session.subject ||
-                            'Tutoring Session'}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{dateStr}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-gray-50 dark:bg-gray-700/30">
-              <p className="text-xs text-gray-500 dark:text-gray-400 italic">No upcoming sessions</p>
-            </div>
-          )}
+      {/* Statistics Grid - 4 columns */}
+      <section>
+        <h2 className="sr-only">Dashboard Statistics</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            icon={Calendar}
+            title="Upcoming Sessions"
+            value={stats.upcomingSessions}
+            subtitle="Scheduled sessions"
+            preview={sessionPreview}
+            iconColor="text-blue-600"
+          />
+          <StatCard
+            icon={Users}
+            title="My Students"
+            value={stats.studentsCount}
+            subtitle="Active students"
+            iconColor="text-green-600"
+          />
+          <StatCard
+            icon={Star}
+            title="Average Rating"
+            value={stats.averageRating.toFixed(1)}
+            subtitle="Out of 5 stars"
+            iconColor="text-amber-600"
+          />
+          <StatCard
+            icon={MessageSquare}
+            title="Feedbacks Received"
+            value={stats.feedbacksCount}
+            subtitle="From students"
+            iconColor="text-purple-600"
+          />
         </div>
+      </section>
 
-        {/* Students */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-gray-600 dark:text-gray-400 text-sm font-semibold">My Students</h3>
-            <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.studentsCount}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Active students</p>
+      {/* Quick Actions Grid - 4 columns on desktop, responsive on mobile */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">Quick Access</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {quickActions.map((action) => (
+            <QuickActionCard
+              key={action.key}
+              icon={action.icon}
+              title={action.label}
+              description={action.description}
+              onClick={() => handleNavigate(action.key)}
+              iconBg={action.iconBg}
+              iconColor={action.iconColor}
+              hoverBorder={action.hoverBorder}
+              hoverIconBg={action.hoverIconBg}
+            />
+          ))}
         </div>
-
-        {/* Average Rating */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-gray-600 dark:text-gray-400 text-sm font-semibold">Average Rating</h3>
-            <Star className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.averageRating.toFixed(1)}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Out of 5 stars</p>
-        </div>
-
-        {/* Feedbacks Received */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-gray-600 dark:text-gray-400 text-sm font-semibold">Feedbacks Received</h3>
-            <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.feedbacksCount}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">From students</p>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
-
-        <div 
-          onClick={() => onNavigate?.('My Sessions')} 
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all group shadow-sm"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors text-indigo-600 dark:text-indigo-400">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-colors" />
-          </div>
-          <h3 className="font-bold text-gray-900 dark:text-white mb-1">My Sessions</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed text-left">View and manage your tutoring sessions</p>
-        </div>
-
-        <div 
-          onClick={() => onNavigate?.('Student Progress')} 
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-blue-500 hover:shadow-lg transition-all group shadow-sm"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors text-blue-600 dark:text-blue-400">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-600 transition-colors" />
-          </div>
-          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Student Progress</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed text-left">Track and update progress</p>
-        </div>
-
-        <div 
-          onClick={() => onNavigate?.('Your Ratings')} 
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-amber-500 hover:shadow-lg transition-all group shadow-sm"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-colors text-amber-600 dark:text-amber-400">
-              <Star className="w-5 h-5" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-amber-600 transition-colors" />
-          </div>
-          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Your Ratings</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed text-left">View rating statistics</p>
-        </div>
-
-        <div 
-          onClick={() => onNavigate?.('Feedbacks')} 
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-purple-500 hover:shadow-lg transition-all group shadow-sm"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors text-purple-600 dark:text-purple-400">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-purple-600 transition-colors" />
-          </div>
-          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Feedbacks</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed text-left">Read feedback from students</p>
-        </div>
-        
-        <div 
-          onClick={() => onNavigate?.('study-materials')} 
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-indigo-500 hover:shadow-lg transition-all group shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-400"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors text-indigo-600 dark:text-indigo-400">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-600 transition-colors" />
-          </div>
-          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Study Materials</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed text-left">Upload and manage learning resources</p>
-        </div>
-      </div>
-
+      </section>
     </div>
   );
 }

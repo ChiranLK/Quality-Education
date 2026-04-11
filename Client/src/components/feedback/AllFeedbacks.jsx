@@ -1,45 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { Loader, AlertCircle, MessageSquare, Filter, Plus, Edit2, Trash2, X } from 'lucide-react';
 import FeedbackCard from './FeedbackCard';
-import customFetch from '../../utils/customfetch';
+// ✅ Context API — replaces direct customFetch calls
+import { useFeedback } from '../../context/FeedbackContext';
+import customFetch from '../../utils/customfetch'; // used only for /auth/all-users (not in FeedbackContext)
 
 export default function AllFeedbacks() {
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [ratingFilter, setRatingFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // Form states
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({
-    studentId: '',
-    tutorId: '',
-    rating: 5,
-    message: '',
-  });
-  const [students, setStudents] = useState([]);
-  const [tutors, setTutors] = useState([]);
+  // ✅ Context hooks
+  const {
+    allFeedbacks: feedbacks,
+    loading,
+    error,
+    fetchAllFeedbacks,
+    updateFeedbackAdmin,
+    createFeedbackAdmin,
+    deleteFeedback,
+  } = useFeedback();
 
-  // Fetch all feedbacks
+  // ── UI-only local state ────────────────────────────────────────────────────
+  const [ratingFilter, setRatingFilter] = useState('all');
+  const [searchTerm, setSearchTerm]     = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingId, setEditingId]       = useState(null);
+  const [formData, setFormData]         = useState({ studentId: '', tutorId: '', rating: 5, message: '' });
+  const [students, setStudents]         = useState([]);
+  const [tutors, setTutors]             = useState([]);
+
+  // ── Load data ──────────────────────────────────────────────────────────
   useEffect(() => {
     fetchAllFeedbacks();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchAllFeedbacks = async () => {
-    try {
-      setLoading(true);
-      const { data } = await customFetch.get('/feedbacks');
-      setFeedbacks(data.feedbacks || []);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to load feedbacks');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch students and tutors for dropdowns
+  // Fetch students & tutors — only needed for the create/edit form dropdown
   useEffect(() => {
     const fetchUsersForForm = async () => {
       try {
@@ -47,7 +40,7 @@ export default function AllFeedbacks() {
         setStudents(allUsers.users.filter((u) => u.role === 'user'));
         setTutors(allUsers.users.filter((u) => u.role === 'tutor'));
       } catch (err) {
-        console.error('Failed to fetch users:', err);
+        console.error('Failed to fetch users for form:', err);
       }
     };
     fetchUsersForForm();
@@ -97,35 +90,23 @@ export default function AllFeedbacks() {
 
   const handleSaveFeedback = async () => {
     try {
-      // Only require student/tutor for creating new feedback
       if (!editingId && (!formData.studentId || !formData.tutorId)) {
         alert('Please select both student and tutor');
         return;
       }
 
       if (editingId) {
-        // Update existing feedback - only send rating and message
-        await customFetch.put(`/feedbacks/admin/${editingId}`, {
-          rating: formData.rating,
-          message: formData.message,
-        });
-        setFeedbacks(
-          feedbacks.map((f) =>
-            f._id === editingId
-              ? { ...f, rating: formData.rating, message: formData.message }
-              : f
-          )
-        );
+        // ✅ Delegated to FeedbackContext
+        await updateFeedbackAdmin(editingId, { rating: formData.rating, message: formData.message });
         setEditingId(null);
       } else {
-        // Create new feedback
-        const { data } = await customFetch.post('/feedbacks/admin/create', {
+        // ✅ Delegated to FeedbackContext
+        await createFeedbackAdmin({
           studentId: formData.studentId,
-          tutorId: formData.tutorId,
-          rating: formData.rating,
-          message: formData.message,
+          tutorId:   formData.tutorId,
+          rating:    formData.rating,
+          message:   formData.message,
         });
-        setFeedbacks([data.feedback, ...feedbacks]);
         setShowCreateForm(false);
       }
 
@@ -136,13 +117,10 @@ export default function AllFeedbacks() {
   };
 
   const handleDeleteFeedback = async (feedbackId) => {
-    if (!window.confirm('Are you sure you want to delete this feedback?')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this feedback?')) return;
     try {
-      await customFetch.delete(`/feedbacks/${feedbackId}`);
-      setFeedbacks(feedbacks.filter((f) => f._id !== feedbackId));
+      // ✅ Delegated to FeedbackContext
+      await deleteFeedback(feedbackId);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete feedback');
     }

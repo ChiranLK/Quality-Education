@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import customFetch from "../../utils/customfetch";
 import HelpRequestVideo from "../../components/HelpRequestVideo";
@@ -10,6 +10,9 @@ import SuccessBanner from "./components/SuccessBanner";
 import HelpRequestTips from "./components/HelpRequestTips";
 import HelpRequestForm from "./components/HelpRequestForm";
 
+// Context import (replaces Zustand store)
+import { useHelpRequest } from "../../context/HelpRequestContext";
+
 // Constants import
 import {
   INITIAL_FORM,
@@ -17,24 +20,36 @@ import {
 } from "./components/helpRequestConstants";
 
 export default function HelpRequest({ user }) {
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [showMessagesModal, setShowMessagesModal] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [formUILanguage, setFormUILanguage] = useState("English");
-  const [editingMessage, setEditingMessage] = useState(null);
+  // Context destructure — same state shape as the old Zustand store
+  const {
+    form,
+    errors,
+    loading,
+    submitted,
+    showMessagesModal,
+    refreshTrigger,
+    formUILanguage,
+    editingMessage,
+    updateFormField,
+    resetForm,
+    setEditingMessage,
+    clearEditingMessage,
+    setShowMessagesModal,
+    setLoading,
+    setSubmitted,
+    setErrors,
+    clearErrors,
+    setFormUILanguage,
+    triggerRefresh,
+  } = useHelpRequest();
 
   // Populate form when editing a message
   useEffect(() => {
     if (editingMessage) {
-      setForm({
-        title: editingMessage.title || "",
-        message: editingMessage.message || "",
-        category: editingMessage.category || "",
-        language: editingMessage.language || "",
-      });
+      updateFormField('title', editingMessage.title || "");
+      updateFormField('message', editingMessage.message || "");
+      updateFormField('category', editingMessage.category || "");
+      updateFormField('language', editingMessage.language || "");
       // Scroll to form
       setTimeout(() => {
         const formElement = document.querySelector('form');
@@ -43,7 +58,7 @@ export default function HelpRequest({ user }) {
         }
       }, 100);
     }
-  }, [editingMessage]);
+  }, [editingMessage, updateFormField]);
 
   const validate = () => {
     const e = {};
@@ -57,8 +72,7 @@ export default function HelpRequest({ user }) {
   };
 
   const handleFormChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+    updateFormField(field, value);
   };
 
   const handleLanguageChange = (language) => {
@@ -70,9 +84,9 @@ export default function HelpRequest({ user }) {
   };
 
   const handleCancelEdit = () => {
-    setEditingMessage(null);
-    setForm(INITIAL_FORM);
-    setErrors({});
+    clearEditingMessage();
+    resetForm();
+    clearErrors();
   };
 
   const handleSubmit = async (e) => {
@@ -96,7 +110,7 @@ export default function HelpRequest({ user }) {
         });
 
         toast.success("Your message has been updated! 📝");
-        setEditingMessage(null);
+        clearEditingMessage();
       } else {
         // Create new message
         await customFetch.post("/messages", {
@@ -110,10 +124,10 @@ export default function HelpRequest({ user }) {
         toast.success("Your request has been published to all tutors! 🎉");
       }
 
-      setForm(INITIAL_FORM);
-      setErrors({});
+      resetForm();
+      clearErrors();
       setSubmitted(true);
-      setRefreshTrigger((prev) => prev + 1); // Trigger modal refresh
+      triggerRefresh();
       setTimeout(() => setSubmitted(false), 4000);
     } catch (err) {
       const msg = err?.response?.data?.msg || "Failed to submit. Please try again.";
@@ -136,8 +150,7 @@ export default function HelpRequest({ user }) {
       {/* Success Banner */}
       <SuccessBanner isVisible={submitted} onClose={() => setSubmitted(false)} />
 
-      {/* Video Section */}
-      <HelpRequestVideo />
+      
 
       {/* Tips Section */}
       <HelpRequestTips />

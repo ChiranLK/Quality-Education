@@ -1,76 +1,49 @@
-// src/hooks/useSessions.js
-import { useState, useEffect } from 'react';
-import { sessionService } from '../services/sessionService';
+/**
+ * useSessions.js
+ *
+ * Public API-compatible hook for tutoring sessions.
+ * Now delegates to SessionContext instead of the old broken sessionService.
+ *
+ * Usage (tutor):
+ *   const { mySessions, loading, createSession, updateSession, deleteSession } = useSessions(user._id);
+ *
+ * Usage (student browse):
+ *   const { sessions, pagination, fetchSessions, joinSession } = useSessions();
+ */
+import { useEffect } from 'react';
+import { useSession } from '../context/SessionContext';
 
+/**
+ * @param {string} [tutorId]  When provided, auto-fetches the tutor's sessions on mount.
+ */
 export const useSessions = (tutorId) => {
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const ctx = useSession();
 
-  // Fetch sessions
-  const fetchSessions = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await sessionService.getSessions(tutorId);
-      setSessions(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Create session
-  const createSession = async (sessionData) => {
-    try {
-      const newSession = await sessionService.createSession(sessionData);
-      setSessions(prev => [...prev, newSession]);
-      return newSession;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    }
-  };
-
-  // Update session
-  const updateSession = async (sessionId, sessionData) => {
-    try {
-      const updatedSession = await sessionService.updateSession(sessionId, sessionData);
-      setSessions(prev => prev.map(session =>
-        session.id === sessionId ? updatedSession : session
-      ));
-      return updatedSession;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    }
-  };
-
-  // Delete session
-  const deleteSession = async (sessionId) => {
-    try {
-      await sessionService.deleteSession(sessionId);
-      setSessions(prev => prev.filter(session => session.id !== sessionId));
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    }
-  };
-
+  // Auto-fetch tutor's sessions when tutorId is provided
   useEffect(() => {
     if (tutorId) {
-      fetchSessions();
+      ctx.fetchMySessions(tutorId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorId]);
 
   return {
-    sessions,
-    loading,
-    error,
-    fetchSessions,
-    createSession,
-    updateSession,
-    deleteSession,
+    // For tutor views
+    sessions:         tutorId ? ctx.mySessions : ctx.sessions,
+    mySessions:       ctx.mySessions,
+    enrolledSessions: ctx.enrolledSessions,
+    loading:          ctx.loading,
+    error:            ctx.error,
+    pagination:       ctx.pagination,
+
+    // Actions
+    fetchSessions:         ctx.fetchSessions,
+    fetchMySessions:       ctx.fetchMySessions,
+    fetchEnrolledSessions: ctx.fetchEnrolledSessions,
+    createSession:         ctx.createSession,
+    updateSession:         ctx.updateSession,
+    deleteSession:         ctx.deleteSession,
+    joinSession:           ctx.joinSession,
+    leaveSession:          ctx.leaveSession,
   };
 };
