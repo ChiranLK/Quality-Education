@@ -1,62 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { Loader, AlertCircle, TrendingUp, Save } from 'lucide-react';
 import ProgressCard from './ProgressCard';
-import customFetch from '../../utils/customfetch';
+// ✅ Context API — replaces direct customFetch calls
+import { useProgress } from '../../context/ProgressContext';
 
+/**
+ * StudentProgress
+ *
+ * Tutor-facing view: shows progress records for all of the tutor's students.
+ * Allows inline editing via an upsert call.
+ * All API calls go through ProgressContext.
+ */
 export default function StudentProgress({ tutorId }) {
-  const [progress, setProgress] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    tutorProgress: progress,
+    loading,
+    error,
+    fetchProgressByTutor,
+    upsertProgress,
+  } = useProgress();
+
+  // ── UI-only local state ───────────────────────────────────────────────────────
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({
-    topic: '',
-    completionPercent: 0,
-    notes: '',
-  });
+  const [editForm, setEditForm]   = useState({ topic: '', completionPercent: 0, notes: '' });
 
   useEffect(() => {
-    const fetchStudentProgress = async () => {
-      try {
-        setLoading(true);
-        const { data } = await customFetch.get(`/progress/tutor/${tutorId}`);
-        setProgress(data.progress || []);
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Failed to load progress');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (tutorId) {
-      fetchStudentProgress();
-    }
+    if (tutorId) fetchProgressByTutor(tutorId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorId]);
 
   const handleEditClick = (prog) => {
     setEditingId(prog._id);
-    setEditForm({
-      topic: prog.topic,
-      completionPercent: prog.completionPercent,
-      notes: prog.notes,
-    });
+    setEditForm({ topic: prog.topic, completionPercent: prog.completionPercent, notes: prog.notes });
   };
 
-  const handleSaveProgress = async (progressId, studentId) => {
+  const handleSaveProgress = async (prog) => {
     try {
-      const { data } = await customFetch.post('/progress', {
-        studentId,
+      await upsertProgress({
+        _id:               prog._id,
+        studentId:         prog.student?._id || prog.student,
         tutorId,
-        topic: editForm.topic,
+        topic:             editForm.topic,
         completionPercent: editForm.completionPercent,
-        notes: editForm.notes,
+        notes:             editForm.notes,
       });
-
-      if (data) {
-        setProgress(
-          progress.map((p) => (p._id === progressId ? { ...p, ...editForm } : p))
-        );
-        setEditingId(null);
-      }
+      setEditingId(null);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to save progress');
     }
@@ -75,9 +63,7 @@ export default function StudentProgress({ tutorId }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Students' Progress
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Students' Progress</h2>
           <p className="text-gray-600 dark:text-gray-400">Track and update your students' learning</p>
         </div>
         <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg px-4 py-2">
@@ -108,72 +94,48 @@ export default function StudentProgress({ tutorId }) {
             <div key={prog._id}>
               {editingId === prog._id ? (
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-blue-500">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-                    Update Progress
-                  </h3>
-
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Update Progress</h3>
                   <div className="space-y-3">
                     {/* Topic */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                        Topic
-                      </label>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Topic</label>
                       <input
                         type="text"
                         value={editForm.topic}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, topic: e.target.value })
-                        }
+                        onChange={(e) => setEditForm({ ...editForm, topic: e.target.value })}
                         className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
-
-                    {/* Completion Percent */}
+                    {/* Completion */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
                         Completion: {editForm.completionPercent}%
                       </label>
                       <input
-                        type="range"
-                        min="0"
-                        max="100"
+                        type="range" min="0" max="100"
                         value={editForm.completionPercent}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            completionPercent: parseInt(e.target.value),
-                          })
-                        }
+                        onChange={(e) => setEditForm({ ...editForm, completionPercent: parseInt(e.target.value) })}
                         className="w-full"
                       />
                     </div>
-
                     {/* Notes */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                        Notes
-                      </label>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Notes</label>
                       <textarea
                         value={editForm.notes}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, notes: e.target.value })
-                        }
+                        onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                         maxLength={2000}
                         className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                         rows={3}
                       />
                     </div>
-
                     {/* Buttons */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() =>
-                          handleSaveProgress(prog._id, prog.student._id)
-                        }
+                        onClick={() => handleSaveProgress(prog)}
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded flex items-center justify-center gap-2"
                       >
-                        <Save size={16} />
-                        Save
+                        <Save size={16} /> Save
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
@@ -185,14 +147,8 @@ export default function StudentProgress({ tutorId }) {
                   </div>
                 </div>
               ) : (
-                <div
-                  onClick={() => handleEditClick(prog)}
-                  className="cursor-pointer"
-                >
-                  <ProgressCard
-                    progress={prog}
-                    showStudentInfo={true}
-                  />
+                <div onClick={() => handleEditClick(prog)} className="cursor-pointer">
+                  <ProgressCard progress={prog} showStudentInfo={true} />
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 text-right">
                     Click to edit →
                   </p>

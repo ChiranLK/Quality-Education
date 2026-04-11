@@ -1,51 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader, AlertCircle, Trash2, Plus, X, Save } from 'lucide-react';
 import ProgressCard from '../../../components/feedback/ProgressCard';
-import customFetch from '../../../utils/customfetch';
+// ✅ Context API — replaces direct customFetch calls
+import { useProgress } from '../../../context/ProgressContext';
+import customFetch from '../../../utils/customfetch'; // still used for fetchStudents only
 
+/**
+ * StudentProgressManager
+ *
+ * Uses ProgressContext for all progress CRUD operations.
+ * Local state is limited to UI concerns (form fields, dropdown).
+ */
 export default function StudentProgressManager({ user }) {
-  const [progress, setProgress] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editForm, setEditForm] = useState({ studentId: '', studentName: '', topic: '', completionPercent: 0, notes: '' });
-  const [newForm, setNewForm] = useState({ studentId: '', topic: '', completionPercent: 0, notes: '' });
-  const [students, setStudents] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  // ✅ Context hooks
+  const {
+    tutorProgress: progress,
+    loading,
+    error,
+    setError,
+    fetchProgressByTutor,
+    upsertProgress,
+    deleteProgress: deleteProgressCtx,
+    setTutorProgress,
+  } = useProgress();
+
+  // ── UI-only local state ─────────────────────────────────────────────────
+  const [editingId, setEditingId]       = useState(null);
+  const [showAddForm, setShowAddForm]   = useState(false);
+  const [editForm, setEditForm]         = useState({ studentId: '', studentName: '', topic: '', completionPercent: 0, notes: '' });
+  const [newForm, setNewForm]           = useState({ studentId: '', topic: '', completionPercent: 0, notes: '' });
+  const [students, setStudents]         = useState([]);
+  const [searchQuery, setSearchQuery]   = useState('');
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
+  // ── Close dropdown on outside click ────────────────────────────────────
   useEffect(() => {
-    // Handle click outside dropdown
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowStudentDropdown(false);
       }
     };
-
     if (showStudentDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showStudentDropdown]);
 
+  // ── Load on mount ───────────────────────────────────────────────────────
   useEffect(() => {
-    fetchProgress();
-    fetchStudents();
-  }, [user]);
-
-  const fetchProgress = async () => {
-    try {
-      setLoading(true);
-      const { data } = await customFetch.get(`/progress/tutor/${user?._id}`);
-      setProgress(data.progress || []);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load progress');
-    } finally {
-      setLoading(false);
+    if (user?._id) {
+      fetchProgressByTutor(user._id);
+      fetchStudents();
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const fetchStudents = async () => {
     try {
@@ -105,14 +114,11 @@ export default function StudentProgressManager({ user }) {
     });
   };
 
+  // ── Save (edit existing) via context ────────────────────────────────────
   const handleSaveProgress = async (progressId) => {
+    if (!editForm.studentId) { alert('Please select a student'); return; }
     try {
-      if (!editForm.studentId) {
-        alert('Please select a student');
-        return;
-      }
-
-      const { data } = await customFetch.post('/progress', {
+      await upsertProgress({
         _id: progressId,
         studentId: editForm.studentId,
         tutorId: user?._id,
@@ -120,32 +126,23 @@ export default function StudentProgressManager({ user }) {
         completionPercent: editForm.completionPercent,
         notes: editForm.notes,
       });
-
-      setProgress(
-        progress.map((p) => (p._id === progressId ? { ...p, ...data.progress } : p))
-      );
       setEditingId(null);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to save progress');
     }
   };
 
+  // ── Add new progress via context ────────────────────────────────────────
   const handleAddProgress = async () => {
-    if (!newForm.studentId || !newForm.topic) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
+    if (!newForm.studentId || !newForm.topic) { alert('Please fill in all required fields'); return; }
     try {
-      const { data } = await customFetch.post('/progress', {
+      await upsertProgress({
         studentId: newForm.studentId,
         tutorId: user?._id,
         topic: newForm.topic,
         completionPercent: newForm.completionPercent,
         notes: newForm.notes,
       });
-
-      setProgress([...progress, data.progress]);
       setNewForm({ studentId: '', topic: '', completionPercent: 0, notes: '' });
       setShowAddForm(false);
     } catch (err) {
@@ -153,14 +150,11 @@ export default function StudentProgressManager({ user }) {
     }
   };
 
+  // ── Delete via context ───────────────────────────────────────────────────
   const handleDeleteProgress = async (progressId) => {
-    if (!window.confirm('Are you sure you want to delete this progress record?')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this progress record?')) return;
     try {
-      await customFetch.delete(`/progress/${progressId}`);
-      setProgress(progress.filter(p => p._id !== progressId));
+      await deleteProgressCtx(progressId);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to delete progress');
     }

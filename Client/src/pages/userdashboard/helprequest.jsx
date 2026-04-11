@@ -10,8 +10,8 @@ import SuccessBanner from "./components/SuccessBanner";
 import HelpRequestTips from "./components/HelpRequestTips";
 import HelpRequestForm from "./components/HelpRequestForm";
 
-// Store import
-import { useHelpRequestStore } from "../../stores/helpRequestStore";
+// Context import (replaces Zustand store)
+import { useHelpRequest } from "../../context/HelpRequestContext";
 
 // Constants import
 import {
@@ -20,28 +20,28 @@ import {
 } from "./components/helpRequestConstants";
 
 export default function HelpRequest({ user }) {
-  // Zustand store
-  const form = useHelpRequestStore((state) => state.form);
-  const errors = useHelpRequestStore((state) => state.errors);
-  const loading = useHelpRequestStore((state) => state.loading);
-  const submitted = useHelpRequestStore((state) => state.submitted);
-  const showMessagesModal = useHelpRequestStore((state) => state.showMessagesModal);
-  const refreshTrigger = useHelpRequestStore((state) => state.refreshTrigger);
-  const formUILanguage = useHelpRequestStore((state) => state.formUILanguage);
-  const editingMessage = useHelpRequestStore((state) => state.editingMessage);
-
-  // Zustand actions
-  const updateFormField = useHelpRequestStore((state) => state.updateFormField);
-  const resetForm = useHelpRequestStore((state) => state.resetForm);
-  const setEditingMessage = useHelpRequestStore((state) => state.setEditingMessage);
-  const clearEditingMessage = useHelpRequestStore((state) => state.clearEditingMessage);
-  const setShowMessagesModal = useHelpRequestStore((state) => state.setShowMessagesModal);
-  const setLoading = useHelpRequestStore((state) => state.setLoading);
-  const setSubmitted = useHelpRequestStore((state) => state.setSubmitted);
-  const setErrors = useHelpRequestStore((state) => state.setErrors);
-  const clearErrors = useHelpRequestStore((state) => state.clearErrors);
-  const setFormUILanguage = useHelpRequestStore((state) => state.setFormUILanguage);
-  const triggerRefresh = useHelpRequestStore((state) => state.triggerRefresh);
+  // Context destructure — same state shape as the old Zustand store
+  const {
+    form,
+    errors,
+    loading,
+    submitted,
+    showMessagesModal,
+    refreshTrigger,
+    formUILanguage,
+    editingMessage,
+    updateFormField,
+    resetForm,
+    setEditingMessage,
+    clearEditingMessage,
+    setShowMessagesModal,
+    setLoading,
+    setSubmitted,
+    setErrors,
+    clearErrors,
+    setFormUILanguage,
+    triggerRefresh,
+  } = useHelpRequest();
 
   // Populate form when editing a message
   useEffect(() => {

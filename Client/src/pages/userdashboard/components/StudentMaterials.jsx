@@ -3,16 +3,11 @@ import {
   FileText, Search, Download, Heart, Eye, ChevronLeft, ChevronRight,
   BookOpen, Filter, Loader2, File, Image, FileType, Tag, GraduationCap, BookMarked, User
 } from 'lucide-react';
-import customFetch from '../../../utils/customfetch';
 import toast, { Toaster } from 'react-hot-toast';
+// ✅ Context API — replaces direct customFetch calls
+import { useStudyMaterial } from '../../../context/StudyMaterialContext';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-const GRADE_OPTIONS = [
-  'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5',
-  'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10',
-  'Grade 11', 'Grade 12', 'A/L', 'O/L', 'University', 'Other'
-];
-
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 const SUBJECT_OPTIONS = [
   'Mathematics', 'Physics', 'Chemistry', 'Biology', 'English',
   'Sinhala', 'History', 'Geography', 'Science', 'ICT',
@@ -32,21 +27,20 @@ function getFileIcon(url = '') {
 function getFileTypeBadge(url = '') {
   if (!url) return { label: 'FILE', color: 'bg-gray-100 text-gray-600' };
   const lower = url.toLowerCase();
-  if (lower.includes('.pdf')) return { label: 'PDF', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
+  if (lower.includes('.pdf'))  return { label: 'PDF', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
   if (lower.includes('.docx') || lower.includes('.doc')) return { label: 'DOC', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' };
   if (lower.includes('.pptx') || lower.includes('.ppt')) return { label: 'PPT', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' };
-  if (lower.includes('.txt')) return { label: 'TXT', color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400' };
+  if (lower.includes('.txt')) return { label: 'TXT', color: 'bg-gray-100 text-gray-700' };
   if (/\.(jpg|jpeg|png|gif|webp)/.test(lower)) return { label: 'IMG', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' };
   return { label: 'FILE', color: 'bg-gray-100 text-gray-600' };
 }
 
-// ─── Material Card ────────────────────────────────────────────────────────────
+// ─── Material Card ─────────────────────────────────────────────────────────────
 function StudentMaterialCard({ material, onDownload, onLike }) {
   const badge = getFileTypeBadge(material.fileUrl);
 
   const handleDownloadClick = () => {
     onDownload(material._id);
-    // Explicitly open download in a new tab if it's a direct Cloudinary URL
     window.open(material.fileUrl, '_blank');
   };
 
@@ -62,7 +56,9 @@ function StudentMaterialCard({ material, onDownload, onLike }) {
             {getFileIcon(material.fileUrl)}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate" title={material.title}>{material.title}</h3>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate" title={material.title}>
+              {material.title}
+            </h3>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${badge.color}`}>{badge.label}</span>
               <span className="flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-gray-400 max-w-[120px] truncate">
@@ -93,8 +89,7 @@ function StudentMaterialCard({ material, onDownload, onLike }) {
           <div className="flex flex-wrap gap-1 mb-3">
             {material.tags.slice(0, 3).map(tag => (
               <span key={tag} className="flex items-center gap-0.5 text-[10px] bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-300 px-1.5 py-0.5 rounded-md">
-                <Tag className="w-2.5 h-2.5" />
-                {tag}
+                <Tag className="w-2.5 h-2.5" />{tag}
               </span>
             ))}
             {material.tags.length > 3 && (
@@ -126,66 +121,57 @@ function StudentMaterialCard({ material, onDownload, onLike }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
+/**
+ * StudentMaterials
+ *
+ * Uses StudyMaterialContext for all API calls.
+ * The component owns only UI state (search text, filter dropdowns, page).
+ * All data fetching and caching is delegated to the context.
+ */
 export default function StudentMaterials({ user }) {
-  const studentGrade = user?.grade || ""; // '' means no grade set yet
+  const studentGrade = user?.grade || '';
 
-  const [materials, setMaterials] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ current: 1, total: 1, count: 0 });
-  const [search, setSearch] = useState('');
+  // ✅ Context hooks — no direct customFetch
+  const {
+    materials,
+    loading,
+    pagination,
+    fetchMaterials,
+    recordDownload,
+    toggleLike,
+  } = useStudyMaterial();
+
+  // ── UI-only local state ──────────────────────────────────────────────────────
+  const [search, setSearch]           = useState('');
   const [filterSubject, setFilterSubject] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   const page = pagination.current;
 
-  // Fetch materials — always locked to student's grade if set
-  const fetchMaterials = async (pg = 1) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page: pg, limit: 9, status: 'active' });
-      if (search) params.set('keyword', search);
-      if (filterSubject) params.set('subject', filterSubject);
-      // 🔒 Always filter by student's own grade if they have one set
-      if (studentGrade) params.set('grade', studentGrade);
-
-      const { data } = await customFetch.get(`/materials?${params}`);
-      setMaterials(data.data || []);
-      setPagination({
-        current: data.pagination?.current || 1,
-        total: data.pagination?.pages || 1,
-        count: data.pagination?.total || 0,
-      });
-    } catch (err) {
-      toast.error('Failed to load study materials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ── Fetch on mount and when grade/subject filter changes ─────────────────────
   useEffect(() => {
-    fetchMaterials(1);
+    fetchMaterials({ page: 1, status: 'active', grade: studentGrade, subject: filterSubject });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterSubject, studentGrade]);
 
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchMaterials(1);
+    fetchMaterials({ page: 1, status: 'active', grade: studentGrade, subject: filterSubject, keyword: search });
   };
 
   const handleDownloadRecord = async (id) => {
     try {
-      await customFetch.post(`/materials/${id}/download`);
-      setTimeout(() => fetchMaterials(page), 1000);
-    } catch (e) {
-      console.error(e);
+      await recordDownload(id);
+    } catch {
+      // Non-critical
     }
   };
 
   const handleLike = async (id) => {
     try {
-      await customFetch.post(`/materials/${id}/like`);
-      fetchMaterials(page);
-    } catch (e) {
+      await toggleLike(id);
+    } catch {
       toast.error('Cannot update like status.');
     }
   };
@@ -193,6 +179,7 @@ export default function StudentMaterials({ user }) {
   const clearFilters = () => {
     setFilterSubject('');
     setSearch('');
+    fetchMaterials({ page: 1, status: 'active', grade: studentGrade });
   };
 
   const hasFilters = filterSubject || search;
@@ -200,6 +187,7 @@ export default function StudentMaterials({ user }) {
   return (
     <div className="space-y-6">
       <Toaster position="bottom-right" />
+
       {/* Header */}
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -210,7 +198,6 @@ export default function StudentMaterials({ user }) {
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Found {pagination.count} material{pagination.count !== 1 ? 's' : ''} available.
           </p>
-          {/* Grade lock badge */}
           {studentGrade ? (
             <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
               <GraduationCap className="w-3.5 h-3.5" />
@@ -237,16 +224,17 @@ export default function StudentMaterials({ user }) {
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 transition-shadow"
               />
             </div>
-            <button type="submit"
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">
+            <button type="submit" className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">
               Search
             </button>
           </form>
+
           <button
             onClick={() => setShowFilters(f => !f)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
-              showFilters ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-400'
-              : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              showFilters
+                ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-400'
+                : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             <Filter className="w-4 h-4" />
@@ -254,18 +242,18 @@ export default function StudentMaterials({ user }) {
           </button>
         </div>
 
-        {/* Filter Dropdowns */}
         {showFilters && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-3">
-            <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select
+              value={filterSubject}
+              onChange={e => setFilterSubject(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
               <option value="">All Subjects</option>
               {SUBJECT_OPTIONS.map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
             </select>
-            {/* Note: Grade filter is locked to student's profile grade — no dropdown shown */}
             {hasFilters && (
-              <button onClick={clearFilters}
-                className="px-3 py-2 text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1">
+              <button onClick={clearFilters} className="px-3 py-2 text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1">
                 Clear All
               </button>
             )}
@@ -291,12 +279,11 @@ export default function StudentMaterials({ user }) {
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
             {hasFilters
-              ? 'Try adjusting your search or filters to find what you are looking for.'
-              : 'Tutors haven\'t uploaded any public study materials yet. Check back soon!'}
+              ? 'Try adjusting your search or filters.'
+              : "Tutors haven't uploaded any public study materials yet. Check back soon!"}
           </p>
           {hasFilters && (
-            <button onClick={clearFilters}
-              className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm transition-colors">
+            <button onClick={clearFilters} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm transition-colors">
               Reset Search
             </button>
           )}
@@ -318,16 +305,20 @@ export default function StudentMaterials({ user }) {
           {pagination.total > 1 && (
             <div className="flex items-center justify-center gap-2 pt-4">
               <button
-                onClick={() => fetchMaterials(page - 1)} disabled={page <= 1}
-                className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                onClick={() => fetchMaterials({ page: page - 1, status: 'active', grade: studentGrade, subject: filterSubject, keyword: search })}
+                disabled={page <= 1}
+                className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="text-sm text-gray-600 dark:text-gray-400 px-3">
                 Page <span className="font-semibold text-gray-900 dark:text-white">{page}</span> of {pagination.total}
               </span>
               <button
-                onClick={() => fetchMaterials(page + 1)} disabled={page >= pagination.total}
-                className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                onClick={() => fetchMaterials({ page: page + 1, status: 'active', grade: studentGrade, subject: filterSubject, keyword: search })}
+                disabled={page >= pagination.total}
+                className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
