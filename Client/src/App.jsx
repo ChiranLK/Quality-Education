@@ -132,7 +132,7 @@ export default function App() {
                 <FeedbackProvider>
                   {/* ADD THIS — single global Toaster; all react-hot-toast calls render here */}
                   <Toaster
-                    position="top-right"
+                    position="top-center"
                     toastOptions={{
                       duration: 4000,
                       className: 'text-base px-5 py-4 rounded-xl shadow-lg',

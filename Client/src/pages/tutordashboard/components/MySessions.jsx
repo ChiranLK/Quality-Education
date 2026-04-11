@@ -6,6 +6,10 @@ import { useSession } from '../../../context/SessionContext';
 // USE EXISTING — project-wide toast library
 import toast from 'react-hot-toast';
 
+const toastStyle = {
+  className: 'text-base px-5 py-4 rounded-xl shadow-lg',
+};
+
 function formatSubjectDisplay(subject) {
   if (!subject || typeof subject !== 'string') return '';
   return subject
@@ -86,11 +90,11 @@ export default function MySessions({ user }) {
       if (editingSession) {
         await updateSession(editingSession._id, apiData);
         // ADD THIS — update success toast
-        toast.success('Session updated successfully ✅');
+        toast.success('Session updated successfully ', toastStyle);
       } else {
         await createSession({ ...apiData, tutor: user._id });
         // ADD THIS — create success toast
-        toast.success('Session created successfully 🎉');
+        toast.success('Session created successfully', toastStyle);
       }
 
       setIsFormOpen(false);
@@ -103,43 +107,47 @@ export default function MySessions({ user }) {
   // UPDATE THIS — replaced window.confirm with react-hot-toast confirm dialog
   const handleDelete = async (sessionId) => {
     // ADD THIS — show a custom confirm toast instead of window.confirm
-    toast(
-      (t) => (
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span>Are you sure you want to delete this session?</span>
-          <span style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button
-              onClick={() => toast.dismiss(t.id)}
-              style={{
-                padding: '4px 12px', borderRadius: 8, border: '1px solid #d1d5db',
-                background: '#f3f4f6', cursor: 'pointer', fontWeight: 600, fontSize: 12,
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={async () => {
-                toast.dismiss(t.id);
-                try {
-                  // USE EXISTING — same delete API call, unchanged
-                  await deleteSession(sessionId);
-                  toast.success('Session deleted successfully 🗑️');
-                } catch (err) {
-                  setError(err.response?.data?.message || 'Failed to delete session');
-                }
-              }}
-              style={{
-                padding: '4px 12px', borderRadius: 8, border: 'none',
-                background: '#dc2626', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 12,
-              }}
-            >
-              Delete
-            </button>
-          </span>
-        </span>
-      ),
-      { duration: 8000 }
-    );
+   toast(
+  (t) => (
+    <div className="flex flex-col gap-3 text-base">
+      <span className="font-medium">
+        Are you sure you want to delete this session?
+      </span>
+
+      <div className="flex gap-2 justify-end">
+        <button
+          onClick={() => toast.dismiss(t.id)}
+          className="px-4 py-2 rounded-lg border bg-gray-100 hover:bg-gray-200 font-semibold text-sm"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={async () => {
+            toast.dismiss(t.id);
+            try {
+              await deleteSession(sessionId);
+              toast.success('Session deleted successfully ', toastStyle);
+            } catch (err) {
+              setError(err.response?.data?.message || 'Failed to delete session');
+            }
+          }}
+          className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-sm"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  ),
+  {
+    duration: 8000,
+    style: {
+      minWidth: '360px',
+      padding: '16px',
+      borderRadius: '12px',
+    },
+  }
+);
   };
 
   const handleCancel = () => {
