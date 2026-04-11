@@ -257,6 +257,7 @@ export default function BrowseSessions({ user }) {
     fetchSessions({ page: 1, keyword: search, subject: filterSubject, grade: filterGrade, level: filterLevel });
   };
 
+  // UPDATE THIS — opens meetingLink directly, no time-window check on student side
   const handleJoin = async (id) => {
     setActionLoading(id);
     try {
@@ -265,6 +266,19 @@ export default function BrowseSessions({ user }) {
       setToast({ message: 'Joined session successfully!', type: 'success' });
       // Refresh list to update capacity
       fetchSessions({ page, keyword: search, subject: filterSubject, grade: filterGrade, level: filterLevel });
+
+      // UPDATE THIS — removed time validation; open link directly
+      const session = sessions.find((s) => s._id === id);
+      if (session) {
+        const meetLink = session.meetingLink || session.location?.meetingLink;
+        if (!meetLink) {
+          // ADD THIS — guard: no link stored
+          alert('Meeting link not available.');
+        } else {
+          // REMOVE THIS (was: time-gate checks) — open immediately
+          window.open(meetLink, '_blank', 'noopener,noreferrer');
+        }
+      }
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to join session.', type: 'error' });
     } finally {

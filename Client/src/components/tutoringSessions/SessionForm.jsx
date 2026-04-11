@@ -127,6 +127,15 @@ const SessionForm = ({ session, onSave, onCancel, isOpen }) => {
     if (formData.schedule.startTime && formData.schedule.endTime) {
       if (formData.schedule.startTime >= formData.schedule.endTime) {
         newErrors.endTime = 'End time must be after start time';
+      } else {
+        // ADD THIS — enforce minimum 15-minute session duration
+        const [startH, startM] = formData.schedule.startTime.split(':').map(Number);
+        const [endH,   endM]   = formData.schedule.endTime.split(':').map(Number);
+        const durationMinutes  = (endH * 60 + endM) - (startH * 60 + startM);
+        if (durationMinutes < 15) {
+          newErrors.endTime = 'Session must be at least 15 minutes long';
+        }
+        // END ADD THIS
       }
     }
 
