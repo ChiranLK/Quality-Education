@@ -1,27 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Loader, AlertCircle } from 'lucide-react';
-import RatingStats from './RatingStats';import customFetch from '../../utils/customfetch';
+import RatingStats from './RatingStats';
+// ✅ Context API — replaces direct customFetch call
+import { useFeedback } from '../../context/FeedbackContext';
+
+/**
+ * TutorRatings
+ *
+ * Displays a tutor's aggregated rating statistics.
+ * The tutorId prop is passed by the parent dashboard.
+ * Data is sourced from FeedbackContext.
+ */
 export default function TutorRatings({ tutorId }) {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { tutorRatingStats: stats, loading, error, fetchTutorRatingStats } = useFeedback();
 
   useEffect(() => {
-    const fetchRatingStats = async () => {
-      try {
-        setLoading(true);
-        const { data } = await customFetch.get(`/feedbacks/tutor/${tutorId}/ratings`);
-        setStats(data);
-      } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Failed to load rating stats');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (tutorId) {
-      fetchRatingStats();
-    }
+    if (tutorId) fetchTutorRatingStats(tutorId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorId]);
 
   if (loading) {
@@ -47,7 +42,6 @@ export default function TutorRatings({ tutorId }) {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Your Rating</h2>
         <p className="text-gray-600 dark:text-gray-400">Overall performance and student feedback</p>
       </div>
-
       {stats && <RatingStats stats={stats} />}
     </div>
   );

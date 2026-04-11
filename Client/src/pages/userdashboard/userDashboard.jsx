@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Home, BookOpen, HelpCircle, Settings, TrendingUp, MessageSquare, ArrowLeft } from "lucide-react";
+import { Home, BookOpen, HelpCircle, Settings, TrendingUp, MessageSquare, ArrowLeft, Calendar } from "lucide-react";
 import { Sidebar, DashboardNavbar } from "../../components/index.js";
 import HelpRequest from "./helprequest.jsx";
 import UserHome from "./userHome.jsx";
 import { MyProgress, MyFeedbacks, SubmitFeedback } from "../../components/feedback/index.js";
 import StudentMaterials from "./components/StudentMaterials.jsx";
 import UserProfile from "./components/UserProfile.jsx";
+import BrowseSessions from "./components/BrowseSessions.jsx";
 
 // ── Static data ────────────────────────────────────────────────────────────────
 
@@ -14,7 +15,7 @@ const SIDEBAR_LINKS = [
   { icon: TrendingUp,     label: "Progress"  },
   { icon: MessageSquare,  label: "Feedbacks" },
   { icon: BookOpen,       label: "Materials" },
-  { icon: BookOpen,       label: "Sessions"  },
+  { icon: Calendar,       label: "Sessions"  },
   { icon: HelpCircle,     label: "Ask Help"  },
   { icon: Settings,       label: "Settings"  },
 ];
@@ -171,8 +172,22 @@ export default function UserDashboard({ user, onLogout, onUpdateUser }) {
             </div>
           )}
 
-          {/* Placeholder for other pages */}
-          {activePage !== "Ask Help" && activePage !== "Progress" && activePage !== "Feedbacks" && activePage !== "Materials" && activePage !== "Settings" && activePage !== "Home" && (
+          {/* Sessions View — Browse & Join Tutoring Sessions */}
+          {activePage === "Sessions" && (
+            <div className="flex-1 overflow-y-auto p-6">
+              <button
+                onClick={() => setActivePage("Home")}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium mb-4"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Home
+              </button>
+              <BrowseSessions user={user} />
+            </div>
+          )}
+
+          {/* Fallback for any other unrecognised page */}
+          {activePage !== "Ask Help" && activePage !== "Progress" && activePage !== "Feedbacks" && activePage !== "Materials" && activePage !== "Settings" && activePage !== "Home" && activePage !== "Sessions" && (
             <div className="flex-1 overflow-y-auto p-6">
               <button
                 onClick={() => setActivePage("Home")}

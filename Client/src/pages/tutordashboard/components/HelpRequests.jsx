@@ -1,24 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageSquare, Loader, AlertCircle, BookOpen, Filter, ChevronDown } from 'lucide-react';
 import customFetch from '../../../utils/customfetch';
-import { useTutorHelpRequestsStore } from '../../../stores/helpRequestStore';
+// Context import (replaces Zustand store)
+import { useHelpRequest } from '../../../context/HelpRequestContext';
 
 export default function HelpRequests({ user }) {
-  // Zustand store hooks
-  const requests = useTutorHelpRequestsStore((state) => state.requests);
-  const loading = useTutorHelpRequestsStore((state) => state.loading);
-  const error = useTutorHelpRequestsStore((state) => state.error);
-  const expandedId = useTutorHelpRequestsStore((state) => state.expandedId);
-  const selectedCategory = useTutorHelpRequestsStore((state) => state.selectedCategory);
-  const selectedLanguage = useTutorHelpRequestsStore((state) => state.selectedLanguage);
+  // Context — replaces the old Zustand selectors; same API
+  const {
+    // Note: requests list and tutor-specific state are kept locally
+    // since the tutor view needs a separate API response (all messages)
+  } = useHelpRequest();
 
-  // Zustand store actions
-  const setRequests = useTutorHelpRequestsStore((state) => state.setRequests);
-  const setLoading = useTutorHelpRequestsStore((state) => state.setLoading);
-  const setError = useTutorHelpRequestsStore((state) => state.setError);
-  const setExpandedId = useTutorHelpRequestsStore((state) => state.setExpandedId);
-  const setSelectedCategory = useTutorHelpRequestsStore((state) => state.setSelectedCategory);
-  const setSelectedLanguage = useTutorHelpRequestsStore((state) => state.setSelectedLanguage);
+  // Local state for this component's own data
+  const [requests, setRequests]                 = useState([]);
+  const [loading, setLoading]                   = useState(true);
+  const [error, setError]                       = useState(null);
+  const [expandedId, setExpandedId]             = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedLanguage, setSelectedLanguage] = useState('All');
 
   const categories = [
     'All',
