@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const BASE = import.meta.env.VITE_BACKEND_URL ?? "";
+
 const customFetch = axios.create({
-    baseURL: "/api",
+    baseURL: `${BASE}/api`,
     withCredentials: true, // Include cookies with requests
 });
 

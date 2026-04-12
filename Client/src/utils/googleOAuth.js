@@ -1,6 +1,6 @@
 import customFetch from "./customfetch";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 // Get Google OAuth URL and redirect
 export const redirectToGoogleOAuth = async (role = "user") => {

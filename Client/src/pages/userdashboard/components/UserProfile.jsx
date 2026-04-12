@@ -135,8 +135,12 @@ export default function UserProfile({ user, onUpdateUser }) {
   }, [user]);
 
   const getAvatarSrc = () => {
-    if (user?.avatar && user.avatar !== "uploads/default-avatar.png") {
-      return `http://localhost:5000/${user.avatar}`;
+    const av = user?.avatar;
+    if (av && av !== "uploads/default-avatar.png" && av !== "") {
+      // Cloudinary full URLs start with https://
+      if (av.startsWith("http")) return av;
+      // Legacy local path
+      return `${import.meta.env.VITE_BACKEND_URL || ""}/${av}`;
     }
     const name = user?.fullName || user?.name || "User";
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4F46E5&color=fff&size=128`;
@@ -241,7 +245,8 @@ export default function UserProfile({ user, onUpdateUser }) {
       const response = await customFetch.put("/auth/profile/avatar", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      const newAvatar = `http://localhost:5000/${response.data.avatar}`;
+      // response.data.avatar is the full Cloudinary HTTPS URL
+      const newAvatar = response.data.avatar;
       setAvatarSrc(newAvatar);
 
       // Lift updated avatar to parent so it's reflected elsewhere instantly

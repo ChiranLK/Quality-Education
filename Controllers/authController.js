@@ -532,8 +532,8 @@ export const uploadAvatar = async (req, res) => {
       throw new BadRequestError("Please upload an image file");
     }
     
-    // Path saved to DB, note we use relative forward-slash path
-    const avatarUrl = `uploads/${req.file.filename}`;
+    // req.file.path is the full Cloudinary HTTPS URL (set by CloudinaryStorage)
+    const avatarUrl = req.file.path;
     
     const updatedUser = await User.findByIdAndUpdate(
       userId, 
@@ -616,7 +616,8 @@ export const deleteMyProfile = async (req, res) => {
 export const removeAvatar = async (req, res) => {
   try {
     const userId = req.user._id;
-    const defaultAvatar = "uploads/default-avatar.png";
+    // Clear the avatar — frontend will fall back to UI-avatars initials
+    const defaultAvatar = "";
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,

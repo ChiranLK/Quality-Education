@@ -8,13 +8,16 @@ import { BookOpen, LogOut } from "lucide-react";
 export default function Sidebar({ links, activeLabel, onNavigate, user, onLogout }) {
 
   /** Resolve the avatar URL to display — real photo or initials fallback */
-  const avatarSrc = (() => {
-    if (user?.avatar && user.avatar !== "uploads/default-avatar.png") {
-      return `http://localhost:5000/${user.avatar}`;
+  const getAvatarSrc = (u) => {
+    const av = u?.avatar;
+    if (av && av !== "uploads/default-avatar.png" && av !== "") {
+      if (av.startsWith("http")) return av;
+      return `${import.meta.env.VITE_BACKEND_URL || ""}/${av}`;
     }
-    const name = user?.fullName || user?.name || "U";
+    const name = u?.fullName || u?.name || "U";
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4F46E5&color=fff&size=64`;
-  })();
+  };
+  const avatarSrc = getAvatarSrc(user);
 
   const handleLogoClick = () => {
     if (links && links.length > 0) onNavigate(links[0].label);
