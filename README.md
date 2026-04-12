@@ -23,11 +23,11 @@
 
 ### Deployment Success
 
-**Frontend Platform:**
-![Quality Education Homepage](./assets/deployment-success.png)
+<img width="1919" height="1024" alt="image" src="https://github.com/user-attachments/assets/aa6c2d3b-d7b7-40ba-ab83-eaf1869e458a" />
 
-**Backend API Health Check:**
-![Quality Education API Status](./assets/backend-success.png)
+
+<img width="1919" height="788" alt="image" src="https://github.com/user-attachments/assets/5096152d-fde6-40cd-8fba-93bef3136202" />
+
 
 ---
 
