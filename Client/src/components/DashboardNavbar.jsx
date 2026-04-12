@@ -9,13 +9,18 @@ import DarkModeToggle from "./DarkModeToggle";
 export default function DashboardNavbar({ searchPlaceholder = "Search…", onSearch, user }) {
 
   /** Resolve avatar URL — real photo or initials fallback */
-  const avatarSrc = (() => {
-    if (user?.avatar && user.avatar !== "uploads/default-avatar.png") {
-      return `http://localhost:5000/${user.avatar}`;
+  const getAvatarSrc = (u) => {
+    const av = u?.avatar;
+    if (av && av !== "uploads/default-avatar.png" && av !== "") {
+      // Cloudinary URLs already start with https://
+      if (av.startsWith("http")) return av;
+      // Legacy local path — prefix with backend URL
+      return `${import.meta.env.VITE_BACKEND_URL || ""}/${av}`;
     }
-    const name = user?.fullName || user?.name || "U";
+    const name = u?.fullName || u?.name || "U";
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4F46E5&color=fff&size=64`;
-  })();
+  };
+  const avatarSrc = getAvatarSrc(user);
 
   return (
     <motion.header

@@ -1,4 +1,5 @@
 import multer from "multer";
+import path from "path";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { BadRequestError } from "../errors/customErrors.js";
@@ -111,10 +112,51 @@ export const handleUploadError = (err, req, res, next) => {
 
 
 
+// Cloudinary storage for user avatars
+const avatarStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'avatars',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+    transformation: [{ width: 256, height: 256, crop: 'fill', gravity: 'face' }],
+  },
+});
+
+const avatarFileFilter = (req, file, cb) => {
+  const allowed = /jpeg|jpg|png|gif|webp/;
+  if (
+    allowed.test(path.extname(file.originalname).toLowerCase()) &&
+    allowed.test(file.mimetype)
+  ) {
+    cb(null, true);
+  } else {
+    cb(new BadRequestError('Only image files (jpeg, jpg, png, gif, webp) are allowed'), false);
+  }
+};
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: avatarFileFilter,
+});
+
+export const uploadAvatarImage = (req, res, next) => {
+  const singleUpload = avatarUpload.single('avatar');
+  singleUpload(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ success: false, msg: 'File size too large. Maximum size is 5MB' });
+      }
+      return res.status(400).json({ success: false, msg: `Upload error: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ success: false, msg: err.message });
+    }
+    next();
+  });
+};
 // ---------------------
-// Local-disk storage for other features (e.g. message images)
+// Local-disk storage for message images (still using disk for dev reference — can migrate to Cloudinary if needed)
 // ---------------------
-import path from "path";
 import fs from "fs";
 
 const uploadsDir = "uploads";
@@ -122,7 +164,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const localStorage = multer.diskStorage({
+const localMsgStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
@@ -132,7 +174,7 @@ const localStorage = multer.diskStorage({
   },
 });
 
-const imageFilter = (req, file, cb) => {
+const msgImageFilter = (req, file, cb) => {
   const allowed = /jpeg|jpg|png|gif|webp/;
   if (
     allowed.test(path.extname(file.originalname).toLowerCase()) &&
@@ -140,59 +182,24 @@ const imageFilter = (req, file, cb) => {
   ) {
     cb(null, true);
   } else {
-    cb(
-      new BadRequestError(
-        "Only image files (jpeg, jpg, png, gif, webp) are allowed",
-      ),
-      false,
-    );
+    cb(new BadRequestError("Only image files (jpeg, jpg, png, gif, webp) are allowed"), false);
   }
 };
 
-const localUpload = multer({
-  storage: localStorage,
+const localMsgUpload = multer({
+  storage: localMsgStorage,
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: imageFilter,
+  fileFilter: msgImageFilter,
 });
 
-// Middleware for single image upload (messages, etc.)
 export const uploadMessageImage = (req, res, next) => {
-  const singleUpload = localUpload.single("image");
+  const singleUpload = localMsgUpload.single("image");
   singleUpload(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            msg: "File size too large. Maximum size is 5MB",
-          });
+        return res.status(400).json({ success: false, msg: "File size too large. Maximum size is 5MB" });
       }
-      return res
-        .status(400)
-        .json({ success: false, msg: `Upload error: ${err.message}` });
-    } else if (err) {
-      return res.status(400).json({ success: false, msg: err.message });
-    }
-    next();
-  });
-};
-
-export const uploadAvatarImage = (req, res, next) => {
-  const singleUpload = localUpload.single("avatar");
-  singleUpload(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === "LIMIT_FILE_SIZE") {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            msg: "File size too large. Maximum size is 5MB",
-          });
-      }
-      return res
-        .status(400)
-        .json({ success: false, msg: `Upload error: ${err.message}` });
+      return res.status(400).json({ success: false, msg: `Upload error: ${err.message}` });
     } else if (err) {
       return res.status(400).json({ success: false, msg: err.message });
     }
