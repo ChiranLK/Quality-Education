@@ -21,8 +21,13 @@
 - **🟢 Frontend Platform**: [https://quality-education-six.vercel.app](https://quality-education-six.vercel.app)
 - **⚙️ Backend API**: [https://quality-education-8hz3.onrender.com](https://quality-education-8hz3.onrender.com)
 
-### Live Demo Preview
+### Deployment Success
+
+**Frontend Platform:**
 ![Quality Education Homepage](./assets/deployment-success.png)
+
+**Backend API Health Check:**
+![Quality Education API Status](./assets/backend-success.png)
 
 ---
 
