@@ -13,6 +13,8 @@ import {
   getMe,
   getAllUsers,
   deleteUser,
+  forgotPassword,
+  resetPassword,
 } from "../Controllers/authController.js";
 import { asyncHandler } from "../Middleware/asyncHandler.js";
 import { protect } from "../Middleware/authMiddleware.js";
@@ -28,6 +30,8 @@ router.post("/register", validateRegisterInput, asyncHandler(register));
 router.post("/login", validateLoginInput, asyncHandler(login));
 router.post("/logout", asyncHandler(logout));
 router.post("/check-email", asyncHandler(checkEmail));
+router.post("/forgot-password", asyncHandler(forgotPassword));
+router.post("/reset-password/:token", asyncHandler(resetPassword));
 router.get("/me", protect, asyncHandler(getMe));
 router.get("/all-users", protect, asyncHandler(getAllUsers));
 

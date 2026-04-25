@@ -5,7 +5,7 @@ import { redirectToGoogleOAuth } from "../utils/googleOAuth";
 import { Eye, EyeOff, Mail, Lock, BookOpen, ArrowRight } from "lucide-react";
 import DarkModeToggle from "../components/DarkModeToggle";
 
-export default function LoginPage({ onLogin, onBack, onNavigateToRegister }) {
+export default function LoginPage({ onLogin, onBack, onNavigateToRegister, onForgotPassword }) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -216,9 +216,13 @@ export default function LoginPage({ onLogin, onBack, onNavigateToRegister }) {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="password">
                   Password
                 </label>
-                <a href="#" className="text-xs text-indigo-600 hover:underline font-medium">
+                <button
+                  type="button"
+                  onClick={onForgotPassword}
+                  className="text-xs text-indigo-600 hover:underline font-medium"
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

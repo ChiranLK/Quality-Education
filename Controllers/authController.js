@@ -1,6 +1,7 @@
 import User from "../models/UserModel.js";
 import StudyMaterial from "../models/StudyMaterialModel.js";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { createJWT } from "../utils/generateToken.js";
 import { hashPassword } from "../utils/passwordUtils.js";
 import { StatusCodes } from "http-status-codes";
@@ -9,6 +10,11 @@ import {
   NotFoundError,
   BadRequestError,
 } from "../errors/customErrors.js";
+import {
+  sendLoginNotificationEmail,
+  sendPasswordResetEmail,
+  sendPasswordChangedEmail,
+} from "../services/feedbackMailService.js";
 
 // Register a new user or tutor
 export const register = async (req, res) => {
@@ -112,7 +118,14 @@ export const login = async (req, res) => {
   
   console.log('Login response token:', responseData.token);
   console.log('Login response token length:', responseData.token?.length);
-  
+
+  // Fire-and-forget: send login notification email (never delays response)
+  sendLoginNotificationEmail({
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+  });
+
   res.status(StatusCodes.OK).json(responseData);
 };
 
@@ -640,5 +653,79 @@ export const removeAvatar = async (req, res) => {
       msg: error.message || "Failed to remove profile picture",
     });
   }
+};
+
+// ─── FORGOT PASSWORD ────────────────────────────────────────────────────────
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) throw new BadRequestError("Email is required");
+
+  const user = await User.findOne({ email });
+
+  // Always respond the same way to prevent email enumeration
+  const genericMsg = "If that email exists, a reset link has been sent.";
+
+  if (!user) {
+    return res.status(StatusCodes.OK).json({ msg: genericMsg });
+  }
+
+  // Generate a random token
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  // Store only the hash in DB (security best practice)
+  const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  await user.save();
+
+  // Build the reset URL pointing to the frontend
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
+
+  await sendPasswordResetEmail({
+    fullName: user.fullName,
+    email: user.email,
+    resetUrl,
+  });
+
+  res.status(StatusCodes.OK).json({ msg: genericMsg });
+};
+
+// ─── RESET PASSWORD ─────────────────────────────────────────────────────────
+export const resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  if (!token) throw new BadRequestError("Reset token is required");
+  if (!password || password.length < 6)
+    throw new BadRequestError("Password must be at least 6 characters");
+
+  // Hash the raw token from the URL to compare with DB
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpiry: { $gt: new Date() }, // must not be expired
+  });
+
+  if (!user) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      success: false,
+      msg: "Reset link is invalid or has expired. Please request a new one.",
+    });
+  }
+
+  // Update password and clear reset token
+  user.password = await hashPassword(password);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpiry = undefined;
+  await user.save();
+
+  // Send confirmation email (fire-and-forget)
+  sendPasswordChangedEmail({ fullName: user.fullName, email: user.email });
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    msg: "Password reset successfully. You can now log in with your new password.",
+  });
 };
 

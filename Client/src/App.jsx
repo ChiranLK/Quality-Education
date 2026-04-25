@@ -6,6 +6,7 @@
  * is purely responsible for routing between views.
  */
 import "./App.css";
+import { useState, useEffect }       from "react";
 import { DarkModeProvider }    from "./context/DarkModeContext.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { StudyMaterialProvider } from "./context/StudyMaterialContext.jsx";
@@ -28,6 +29,8 @@ import TermsOfService   from "./pages/info/TermsOfService.jsx";
 import RegisterPage     from "./pages/register.jsx";
 import AuthSuccessPage  from "./pages/auth-success.jsx";
 import AuthErrorPage    from "./pages/auth-error.jsx";
+import ForgotPasswordPage from "./pages/ForgotPassword.jsx";
+import ResetPasswordPage  from "./pages/ResetPassword.jsx";
 
 // ── Role → Dashboard map ───────────────────────────────────────────────────────
 const DASHBOARDS = {
@@ -39,6 +42,21 @@ const DASHBOARDS = {
 // ── Inner routing component (has access to AuthContext) ───────────────────────
 function AppRouter() {
   const { user, currentView, setCurrentView, login, logout, updateUser } = useAuth();
+  const [resetToken, setResetToken] = useState(null);
+
+  // Detect reset-password token in URL on first load
+  // Supports both hash-based: /#/reset-password/<token>
+  // and path-based (if served correctly): /reset-password/<token>
+  useEffect(() => {
+    const path = window.location.pathname + window.location.hash;
+    const match = path.match(/reset-password\/([a-f0-9]{64})/);
+    if (match) {
+      setResetToken(match[1]);
+      setCurrentView("reset-password");
+      // Clean URL without reloading
+      window.history.replaceState({}, "", "/");
+    }
+  }, []);
 
   // ── Logged-in: show role dashboard ──────────────────────────────────────────
   if (user && currentView === "dashboard") {
@@ -74,6 +92,7 @@ function AppRouter() {
           onLogin={login}
           onBack={() => setCurrentView("home")}
           onNavigateToRegister={() => setCurrentView("register")}
+          onForgotPassword={() => setCurrentView("forgot-password")}
         />
       );
 
@@ -82,6 +101,22 @@ function AppRouter() {
         <RegisterPage
           onLogin={login}
           onBack={() => setCurrentView("home")}
+          onNavigateToLogin={() => setCurrentView("login")}
+        />
+      );
+
+    case "forgot-password":
+      return (
+        <ForgotPasswordPage
+          onBack={() => setCurrentView("login")}
+        />
+      );
+
+    case "reset-password":
+      return (
+        <ResetPasswordPage
+          token={resetToken}
+          onBack={() => setCurrentView("forgot-password")}
           onNavigateToLogin={() => setCurrentView("login")}
         />
       );
