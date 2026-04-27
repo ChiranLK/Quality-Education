@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Progress from "../models/ProgressModel.js";
 import User from "../models/UserModel.js";
+import { sendProgressNotificationEmail } from "../services/feedbackMailService.js";
 
 const STUDENT_ROLE = process.env.STUDENT_ROLE || "user";
 const TUTOR_ROLE = process.env.TUTOR_ROLE || "tutor";
@@ -72,7 +73,38 @@ export const upsertProgress = async (req, res) => {
       setDefaultsOnInsert: true,
     });
 
+    // Fire-and-forget: send progress notification emails (never delays response)
+    const updatedByRole = req.user.role; // 'tutor', 'user' (student), or 'admin'
+    Promise.resolve().then(async () => {
+      const [studentUser, tutorUser] = await Promise.all([
+        User.findById(studentId).select("fullName email"),
+        User.findById(tutorId).select("fullName email"),
+      ]);
+      console.log("[ProgressEmail] updatedByRole:", updatedByRole);
+      console.log("[ProgressEmail] studentEmail:", studentUser?.email);
+      console.log("[ProgressEmail] tutorEmail:  ", tutorUser?.email);
+      console.log("[ProgressEmail] SEND_PROGRESS_EMAIL:", process.env.SEND_PROGRESS_EMAIL);
+      console.log("[ProgressEmail] PROGRESS_EMAIL_TO_TUTOR:", process.env.PROGRESS_EMAIL_TO_TUTOR);
+      console.log("[ProgressEmail] PROGRESS_EMAIL_TO_STUDENT:", process.env.PROGRESS_EMAIL_TO_STUDENT);
+      await sendProgressNotificationEmail({
+        studentName: studentUser?.fullName || "Student",
+        studentEmail: studentUser?.email,
+        tutorName: tutorUser?.fullName || "Tutor",
+        tutorEmail: tutorUser?.email,
+        topic: (topic || "").trim(),
+        completionPercent: percent,
+        notes: (notes || "").trim(),
+        sessionId: sessionId || null,
+        updatedByRole,
+      });
+      console.log("[ProgressEmail] Email(s) sent successfully.");
+    }).catch((e) => {
+      console.error("[ProgressEmail] FAILED:", e.message);
+      console.error(e);
+    });
+
     return res.json({ message: "Progress saved", progress: doc });
+
   } catch (err) {
     return res.status(500).json({ message: "Server error", error: err.message });
   }

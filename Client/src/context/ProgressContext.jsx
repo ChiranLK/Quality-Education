@@ -73,7 +73,7 @@ export function ProgressProvider({ children }) {
     }
   }, []);
 
-  // ── Create or update a progress record ───────────────────────────────────
+  // ── Create or update a progress record (tutor / admin) ───────────────────
   /**
    * The backend uses an upsert POST /api/progress.
    * @param {object} progressData  { studentId, tutorId, topic, completionPercent, notes, _id? }
@@ -88,6 +88,36 @@ export function ProgressProvider({ children }) {
       const exists = prev.find((p) => p._id === saved._id);
       if (exists) return prev.map((p) => (p._id === saved._id ? saved : p));
       return [saved, ...prev];
+    });
+
+    return saved;
+  }, []);
+
+  // ── Student updates their own progress bar ────────────────────────────────
+  /**
+   * Student-side upsert: sends the same POST /api/progress endpoint
+   * but optimistically updates myProgress AND tutorProgress so the tutor
+   * panel refreshes automatically if both share this context session.
+   *
+   * @param {object} progressData  { studentId, tutorId, topic, completionPercent, notes }
+   * @returns {object} The saved progress record
+   */
+  const upsertMyProgress = useCallback(async (progressData) => {
+    const { data } = await customFetch.post('/progress', progressData);
+    const saved = data.progress || data.data;
+
+    // Optimistically update student's own view
+    setMyProgress((prev) => {
+      const exists = prev.find((p) => p._id === saved._id);
+      if (exists) return prev.map((p) => (p._id === saved._id ? saved : p));
+      return [saved, ...prev];
+    });
+
+    // Also mirror into tutorProgress so tutor panel reflects changes immediately
+    setTutorProgress((prev) => {
+      const exists = prev.find((p) => p._id === saved._id);
+      if (exists) return prev.map((p) => (p._id === saved._id ? saved : p));
+      return prev; // don't add — tutor panel only shows what they created
     });
 
     return saved;
@@ -115,8 +145,10 @@ export function ProgressProvider({ children }) {
     fetchProgressByTutor,
     fetchAllProgress,
     upsertProgress,
+    upsertMyProgress,
     deleteProgress,
     // Expose setters so components may optimistically update
+    setMyProgress,
     setTutorProgress,
   };
 
